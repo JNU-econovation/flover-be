@@ -1,7 +1,9 @@
 package com.flover.flover_be.global.auth;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flover.flover_be.global.exception.ErrorCode;
 import com.flover.flover_be.global.jwt.JwtProvider;
+import com.flover.flover_be.global.response.ErrorResponse;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +24,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtProvider jwtProvider;
+    private final ObjectMapper objectMapper;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -51,7 +54,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         response.setStatus(errorCode.getStatus().value());
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write(
-                String.format("{\"status\":%d,\"message\":\"%s\"}", errorCode.getStatus().value(), errorCode.getMessage())
+                objectMapper.writeValueAsString(
+                        ErrorResponse.of(errorCode.getStatus().value(), errorCode.getMessage())
+                )
         );
     }
 }
