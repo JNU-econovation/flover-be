@@ -1,5 +1,6 @@
 package com.flover.flover_be.global.jwt;
 
+import com.flover.flover_be.global.auth.AuthException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -7,8 +8,10 @@ import org.junit.jupiter.api.Test;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JwtProviderTest {
 
@@ -36,5 +39,33 @@ class JwtProviderTest {
                 .getPayload();
 
         assertThat(claims.getSubject()).isEqualTo("42");
+    }
+
+    @Test
+    void getUserId_유효한_토큰에서_userId_반환() {
+        String token = jwtProvider.generateToken(42L);
+
+        assertThat(jwtProvider.getUserId(token)).isEqualTo(42L);
+    }
+
+    @Test
+    void getUserId_만료된_토큰이면_AuthException_발생() {
+        SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+        String expiredToken = Jwts.builder()
+                .subject("1")
+                .expiration(new Date(System.currentTimeMillis() - 1000))
+                .signWith(key)
+                .compact();
+
+        assertThatThrownBy(() -> jwtProvider.getUserId(expiredToken))
+                .isInstanceOf(AuthException.class);
+    }
+
+    @Test
+    void getUserId_변조된_토큰이면_AuthException_발생() {
+        String token = jwtProvider.generateToken(1L);
+
+        assertThatThrownBy(() -> jwtProvider.getUserId(token + "tampered"))
+                .isInstanceOf(AuthException.class);
     }
 }
