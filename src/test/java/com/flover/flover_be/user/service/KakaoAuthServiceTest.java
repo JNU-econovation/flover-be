@@ -18,6 +18,8 @@ import org.mockito.quality.Strictness;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
+import org.mockito.ArgumentCaptor;
+
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -76,12 +78,13 @@ class KakaoAuthServiceTest {
     @Test
     void 신규_유저면_save_호출() {
         KakaoDto.UserInfoResponse userInfo = buildUserInfo(999L, "user@test.com", "홍길동");
-        User saved = User.create(999L, "user@test.com", "홍길동", "http://img.url");
+        User saved = User.create(999L, "user@test.com", "플러버123456", null);
 
         when(postResponseSpec.body(KakaoDto.TokenResponse.class))
                 .thenReturn(new KakaoDto.TokenResponse("kakao-token", "Bearer", "refresh", 3600L));
         when(getResponseSpec.body(KakaoDto.UserInfoResponse.class)).thenReturn(userInfo);
         when(userRepository.findByKakaoId(999L)).thenReturn(Optional.empty());
+        when(userRepository.existsByNickname(anyString())).thenReturn(false);
         when(userRepository.save(any(User.class))).thenReturn(saved);
         when(jwtProvider.generateToken(any())).thenReturn("jwt-token");
 
@@ -92,7 +95,43 @@ class KakaoAuthServiceTest {
     }
 
     @Test
-    void 기존_유저면_save_없이_프로필_업데이트() {
+    void 신규_유저_기본_닉네임이_플러버_형식으로_생성됨() {
+        KakaoDto.UserInfoResponse userInfo = buildUserInfo(999L, "user@test.com", "홍길동");
+
+        when(postResponseSpec.body(KakaoDto.TokenResponse.class))
+                .thenReturn(new KakaoDto.TokenResponse("kakao-token", "Bearer", "refresh", 3600L));
+        when(getResponseSpec.body(KakaoDto.UserInfoResponse.class)).thenReturn(userInfo);
+        when(userRepository.findByKakaoId(999L)).thenReturn(Optional.empty());
+        when(userRepository.existsByNickname(anyString())).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(jwtProvider.generateToken(any())).thenReturn("jwt-token");
+
+        kakaoAuthService.kakaoLogin("auth-code");
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getNickname()).matches("플러버\\d{6}");
+    }
+
+    @Test
+    void 닉네임_중복시_재생성() {
+        KakaoDto.UserInfoResponse userInfo = buildUserInfo(999L, "user@test.com", "홍길동");
+
+        when(postResponseSpec.body(KakaoDto.TokenResponse.class))
+                .thenReturn(new KakaoDto.TokenResponse("kakao-token", "Bearer", "refresh", 3600L));
+        when(getResponseSpec.body(KakaoDto.UserInfoResponse.class)).thenReturn(userInfo);
+        when(userRepository.findByKakaoId(999L)).thenReturn(Optional.empty());
+        when(userRepository.existsByNickname(anyString())).thenReturn(true).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(jwtProvider.generateToken(any())).thenReturn("jwt-token");
+
+        kakaoAuthService.kakaoLogin("auth-code");
+
+        verify(userRepository, times(2)).existsByNickname(anyString());
+    }
+
+    @Test
+    void 기존_유저면_save_호출_안하고_닉네임_유지() {
         KakaoDto.UserInfoResponse userInfo = buildUserInfo(999L, "user@test.com", "새닉네임");
         User existing = User.create(999L, "user@test.com", "기존닉네임", "old.jpg");
 
@@ -104,7 +143,7 @@ class KakaoAuthServiceTest {
 
         kakaoAuthService.kakaoLogin("auth-code");
 
-        assertThat(existing.getNickname()).isEqualTo("새닉네임");
+        assertThat(existing.getNickname()).isEqualTo("기존닉네임");
         verify(userRepository, never()).save(any());
     }
 
