@@ -44,4 +44,8 @@ public class User {
         this.nickname = nickname;
         this.profileImageUrl = profileImageUrl;
     }
+
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
 }
