@@ -1,5 +1,8 @@
 package com.flover.flover_be.global.jwt;
 
+import com.flover.flover_be.global.auth.AuthErrorCode;
+import com.flover.flover_be.global.auth.AuthException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,5 +33,19 @@ public class JwtProvider {
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(secretKey)
                 .compact();
+    }
+
+    public Long getUserId(String token) {
+        try {
+            String subject = Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .getSubject();
+            return Long.valueOf(subject);
+        } catch (JwtException e) {
+            throw new AuthException(AuthErrorCode.INVALID_TOKEN);
+        }
     }
 }
