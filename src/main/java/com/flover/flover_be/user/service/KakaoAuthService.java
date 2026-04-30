@@ -19,7 +19,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 @Service
@@ -102,10 +102,9 @@ public class KakaoAuthService {
     }
 
     private String generateDefaultNickname() {
-        Random random = new Random();
         String nickname;
         do {
-            int suffix = 100000 + random.nextInt(900000);
+            int suffix = ThreadLocalRandom.current().nextInt(100000, 1000000);
             nickname = "플러버" + suffix;
         } while (userRepository.existsByNickname(nickname));
         return nickname;
