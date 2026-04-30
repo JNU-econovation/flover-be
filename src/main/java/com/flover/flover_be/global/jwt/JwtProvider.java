@@ -44,7 +44,7 @@ public class JwtProvider {
                     .getPayload()
                     .getSubject();
             return Long.valueOf(subject);
-        } catch (JwtException e) {
+        } catch (JwtException | NumberFormatException e) {
             throw new AuthException(AuthErrorCode.INVALID_TOKEN);
         }
     }
