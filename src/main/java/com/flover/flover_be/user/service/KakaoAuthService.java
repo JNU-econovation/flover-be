@@ -19,6 +19,8 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
+import java.util.Random;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -91,14 +93,21 @@ public class KakaoAuthService {
     private User upsertUser(KakaoDto.UserInfoResponse userInfo) {
         KakaoDto.UserInfoResponse.KakaoAccount account = userInfo.kakaoAccount();
         String email = account != null ? account.email() : null;
-        String nickname = (account != null && account.profile() != null) ? account.profile().nickname() : null;
-        String profileImageUrl = (account != null && account.profile() != null) ? account.profile().profileImageUrl() : null;
 
         return userRepository.findByKakaoId(userInfo.id())
-                .map(user -> {
-                    user.updateProfile(nickname, profileImageUrl);
-                    return user;
-                })
-                .orElseGet(() -> userRepository.save(User.create(userInfo.id(), email, nickname, profileImageUrl)));
+                .orElseGet(() -> {
+                    String defaultNickname = generateDefaultNickname();
+                    return userRepository.save(User.create(userInfo.id(), email, defaultNickname, null));
+                });
+    }
+
+    private String generateDefaultNickname() {
+        Random random = new Random();
+        String nickname;
+        do {
+            int suffix = 100000 + random.nextInt(900000);
+            nickname = "플러버" + suffix;
+        } while (userRepository.existsByNickname(nickname));
+        return nickname;
     }
 }
