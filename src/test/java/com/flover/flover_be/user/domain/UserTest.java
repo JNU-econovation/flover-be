@@ -26,4 +26,13 @@ class UserTest {
         assertThat(user.getProfileImageUrl()).isEqualTo("new.jpg");
     }
 
+    @Test
+    void updateNickname_닉네임_변경() {
+        User user = User.create(1L, "a@b.com", "기존닉네임", null);
+
+        user.updateNickname("새닉네임");
+
+        assertThat(user.getNickname()).isEqualTo("새닉네임");
+    }
+
 }
