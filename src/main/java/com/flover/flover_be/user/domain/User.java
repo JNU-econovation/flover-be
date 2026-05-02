@@ -1,5 +1,7 @@
 package com.flover.flover_be.user.domain;
 
+import com.flover.flover_be.user.exception.UserErrorCode;
+import com.flover.flover_be.user.exception.UserException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -14,6 +16,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
+    private static final long MINUTES_PER_HOUR = 60L;
+    private static final long EXPERIENCE_PER_PLOGGING_HOUR = 100L;
+    private static final long EXPERIENCE_PER_LEVEL = 1_000L;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -26,6 +32,15 @@ public class User {
 
     @Column(name = "profile_image_url")
     private String profileImageUrl;
+
+    @Column(nullable = false, columnDefinition = "int default 1")
+    private int level = 1;
+
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    private long experience = 0L;
+
+    @Column(name = "total_plogging_minutes", nullable = false, columnDefinition = "bigint default 0")
+    private long totalPloggingMinutes = 0L;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -47,5 +62,19 @@ public class User {
 
     public void updateNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public void updateProfileImage(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
+
+    public void addPloggingTimeMinutes(long minutes) {
+        if (minutes <= 0) {
+            throw new UserException(UserErrorCode.INVALID_PLOGGING_TIME);
+        }
+
+        this.totalPloggingMinutes += minutes;
+        this.experience = (this.totalPloggingMinutes / MINUTES_PER_HOUR) * EXPERIENCE_PER_PLOGGING_HOUR;
+        this.level = (int) (this.experience / EXPERIENCE_PER_LEVEL) + 1;
     }
 }
