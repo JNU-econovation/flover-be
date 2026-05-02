@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -140,7 +141,7 @@ class UserServiceTest {
         // then
         assertThat(result.profileImageUrl()).isEqualTo(newImageUrl);
         assertThat(user.getProfileImageUrl()).isEqualTo(newImageUrl);
-        verify(profileImageStorageService).deleteIfOwnedByBucket(null);
+        verify(profileImageStorageService, never()).deleteIfOwnedByBucket(any());
     }
 
     @DisplayName("기존 프로필 이미지가 있으면 교체 시 삭제를 요청한다")
@@ -160,6 +161,23 @@ class UserServiceTest {
         // then
         verify(profileImageStorageService).deleteIfOwnedByBucket(oldImageUrl);
         assertThat(user.getProfileImageUrl()).isEqualTo(newImageUrl);
+    }
+
+    @DisplayName("동일한 URL로 교체 시 S3 삭제를 요청하지 않는다")
+    @Test
+    void save_profile_image_url_동일_URL_삭제_안함() {
+        // given
+        Long userId = 1L;
+        String sameUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/users/1/profile/uuid.png";
+        User user = User.create(1L, "test@test.com", "nickname", sameUrl);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+        // when
+        userService.saveProfileImageUrl(userId, sameUrl);
+
+        // then
+        verify(profileImageStorageService, never()).deleteIfOwnedByBucket(any());
     }
 
     @DisplayName("프로필 이미지 URL 저장 시 유저가 없으면 예외가 발생한다")

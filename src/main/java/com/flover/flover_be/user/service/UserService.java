@@ -40,7 +40,9 @@ public class UserService {
     public UserDto.ProfileImageResponse saveProfileImageUrl(Long userId, String imageUrl) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
-        profileImageStorageService.deleteIfOwnedByBucket(user.getProfileImageUrl());
+        if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().equals(imageUrl)) {
+            profileImageStorageService.deleteIfOwnedByBucket(user.getProfileImageUrl());
+        }
         user.updateProfileImage(imageUrl);
         return new UserDto.ProfileImageResponse(user.getId(), user.getProfileImageUrl());
     }
