@@ -16,9 +16,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
-    private static final long MINUTES_PER_HOUR = 60L;
-    private static final long EXPERIENCE_PER_PLOGGING_HOUR = 100L;
-    private static final long EXPERIENCE_PER_LEVEL = 1_000L;
+    private static final long EXP_GRANT_INTERVAL_SECONDS = 5L;  // 5초마다 EXP 1 부여
+    private static final long EXP_PER_INTERVAL = 1L;
+    private static final long EXPERIENCE_PER_LEVEL = 720L;       // 1시간 플로깅 시 레벨업
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,8 +39,8 @@ public class User {
     @Column(nullable = false, columnDefinition = "bigint default 0")
     private long experience = 0L;
 
-    @Column(name = "total_plogging_minutes", nullable = false, columnDefinition = "bigint default 0")
-    private long totalPloggingMinutes = 0L;
+    @Column(name = "total_plogging_seconds", nullable = false, columnDefinition = "bigint default 0")
+    private long totalPloggingSeconds = 0L;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -68,13 +68,13 @@ public class User {
         this.profileImageUrl = profileImageUrl;
     }
 
-    public void addPloggingTimeMinutes(long minutes) {
-        if (minutes <= 0) {
+    public void addPloggingTimeSeconds(long seconds) {
+        if (seconds <= 0) {
             throw new UserException(UserErrorCode.INVALID_PLOGGING_TIME);
         }
 
-        this.totalPloggingMinutes += minutes;
-        this.experience = (this.totalPloggingMinutes / MINUTES_PER_HOUR) * EXPERIENCE_PER_PLOGGING_HOUR;
+        this.totalPloggingSeconds += seconds;
+        this.experience = (this.totalPloggingSeconds / EXP_GRANT_INTERVAL_SECONDS) * EXP_PER_INTERVAL;
         this.level = (int) (this.experience / EXPERIENCE_PER_LEVEL) + 1;
     }
 }
