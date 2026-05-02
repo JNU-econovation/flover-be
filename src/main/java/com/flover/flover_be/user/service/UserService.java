@@ -17,6 +17,13 @@ public class UserService {
     private final UserRepository userRepository;
     private final ProfileImageStorageService profileImageStorageService;
 
+    @Transactional(readOnly = true)
+    public UserDto.UserInfoResponse findUserInfo(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+        return new UserDto.UserInfoResponse(user.getNickname(), user.getLevel(), user.getProfileImageUrl());
+    }
+
     @Transactional
     public UserDto.NicknameResponse updateNickname(Long userId, String nickname) {
         User user = userRepository.findById(userId)

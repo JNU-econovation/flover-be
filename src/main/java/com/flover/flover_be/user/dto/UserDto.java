@@ -11,4 +11,6 @@ public class UserDto {
     public record ProfileImageResponse(Long userId, String profileImageUrl) {}
 
     public record ProfileImageUrlRequest(@NotBlank String imageUrl) {}
+
+    public record UserInfoResponse(String nickname, int level, String profileImageUrl) {}
 }

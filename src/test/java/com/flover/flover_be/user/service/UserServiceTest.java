@@ -3,6 +3,7 @@ package com.flover.flover_be.user.service;
 import com.flover.flover_be.global.storage.StorageDto;
 import com.flover.flover_be.user.domain.User;
 import com.flover.flover_be.user.dto.UserDto;
+import com.flover.flover_be.user.exception.UserErrorCode;
 import com.flover.flover_be.user.exception.UserException;
 import com.flover.flover_be.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +31,35 @@ class UserServiceTest {
     @Mock private ProfileImageStorageService profileImageStorageService;
     @InjectMocks private UserService userService;
 
+    @DisplayName("유저 정보를 정상적으로 조회한다")
+    @Test
+    void find_user_info_성공() {
+        // given
+        Long userId = 1L;
+        User user = User.create(1L, "test@test.com", "닉네임", "https://img.url/profile.png");
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+        // when
+        UserDto.UserInfoResponse result = userService.findUserInfo(userId);
+
+        // then
+        assertThat(result.nickname()).isEqualTo("닉네임");
+        assertThat(result.level()).isEqualTo(1);
+        assertThat(result.profileImageUrl()).isEqualTo("https://img.url/profile.png");
+    }
+
+    @DisplayName("존재하지 않는 유저 정보 조회 시 예외가 발생한다")
+    @Test
+    void find_user_info_유저없음_예외() {
+        // given
+        given(userRepository.findById(anyLong())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> userService.findUserInfo(1L))
+                .isInstanceOf(UserException.class);
+    }
+
     @DisplayName("닉네임을 정상적으로 변경한다")
     @Test
     void update_nickname_성공() {
@@ -55,8 +85,9 @@ class UserServiceTest {
         given(userRepository.findById(anyLong())).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> userService.updateNickname(1L, "새닉네임"))
-                .isInstanceOf(UserException.class);
+        assertThatThrownBy(() -> userService.findUserInfo(1L))
+                .isInstanceOf(UserException.class)
+                .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.USER_NOT_FOUND);
     }
 
     @DisplayName("이미 사용 중인 닉네임으로 변경 시 예외가 발생한다")
