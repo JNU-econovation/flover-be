@@ -3,6 +3,7 @@ package com.flover.flover_be.user.service;
 import com.flover.flover_be.global.storage.StorageDto;
 import com.flover.flover_be.user.domain.User;
 import com.flover.flover_be.user.dto.UserDto;
+import com.flover.flover_be.user.exception.UserErrorCode;
 import com.flover.flover_be.user.exception.UserException;
 import com.flover.flover_be.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -84,8 +85,9 @@ class UserServiceTest {
         given(userRepository.findById(anyLong())).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> userService.updateNickname(1L, "새닉네임"))
-                .isInstanceOf(UserException.class);
+        assertThatThrownBy(() -> userService.findUserInfo(1L))
+                .isInstanceOf(UserException.class)
+                .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.USER_NOT_FOUND);
     }
 
     @DisplayName("이미 사용 중인 닉네임으로 변경 시 예외가 발생한다")
