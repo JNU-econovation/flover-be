@@ -98,6 +98,15 @@ public class KakaoAuthException extends BusinessException {
 - 공통 래퍼(`ApiResponse<T>`)를 사용하지 않는다.
 - 에러 응답만 `ErrorResponse` DTO로 통일한다.
 
+## S3 파일 업로드 패턴
+- 파일 업로드는 **Presigned URL** 방식을 사용한다. 서버가 파일을 직접 받지 않는다.
+  1. 클라이언트가 `GET /upload-url?contentType=image/png` 요청 → 서버가 S3 Presigned PUT URL + 최종 imageUrl 반환
+  2. 클라이언트가 Presigned URL로 S3에 직접 PUT 업로드
+  3. 클라이언트가 `PUT /profile-image` with `{ imageUrl }` → 서버가 DB에 URL 저장
+- Presigned URL 유효 시간은 10분으로 설정한다.
+- 허용 Content-Type은 서버에서 검증하며, Presigned URL 서명 시에도 Content-Type을 고정한다.
+- `S3Client`와 `S3Presigner` 모두 `AwsCredentialsProvider` Bean을 공유한다.
+
 ## 안티패턴 금지
 - Controller에서 Repository를 직접 호출하지 않는다.
 - `@Autowired` 필드 주입을 사용하지 않는다.
@@ -105,3 +114,4 @@ public class KakaoAuthException extends BusinessException {
 - 엔티티를 Controller 반환값으로 직접 사용하지 않는다.
 - 엔티티에 public setter를 사용하지 않는다.
 - 상태 변경은 의미 있는 도메인 메서드를 통해 수행한다. (예: changePassword)
+- `IllegalArgumentException`, `IllegalStateException` 등 표준 Java 예외를 도메인 로직에서 직접 던지지 않는다. 도메인 엔티티 내부에서도 커스텀 `BusinessException` 서브클래스를 사용한다.

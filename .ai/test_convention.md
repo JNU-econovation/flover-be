@@ -39,6 +39,12 @@ void find_user_by_id_throws_exception_when_not_found() {
 - 의존성은 `@Mock` / `@InjectMocks`로 주입
 - Service 레이어를 중점적으로 단위 테스트한다.
 
+### `@Mock` vs `@Spy`
+- `@Mock`: 완전한 가짜 객체. 모든 메서드가 기본값(null, 0, false)을 반환하며 실제 로직은 실행되지 않는다.
+- `@Spy`: 실제 객체를 감싼다. 명시적으로 stub하지 않은 메서드는 실제 구현이 그대로 실행된다.
+- **`@Spy`를 사용하는 경우**: 의존 객체의 실제 동작이 테스트 검증에 필요할 때. 예: `ObjectMapper`를 `@Mock`으로 두면 JSON 직렬화가 null을 반환해 필터 에러 응답 테스트가 의미 없어진다.
+- 원칙: 의존성을 완전히 격리하고 싶으면 `@Mock`, 실제 동작이 필요하면 `@Spy`.
+
 ## 통합 테스트
 - `@SpringBootTest` + `@Transactional` 조합으로 DB 롤백을 보장한다.
 - 테스트용 프로퍼티는 `src/test/resources/application.properties`에 분리한다.

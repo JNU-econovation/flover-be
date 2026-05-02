@@ -7,4 +7,8 @@ public class UserDto {
     public record NicknameRequest(@NotBlank String nickname) {}
 
     public record NicknameResponse(Long userId, String nickname) {}
+
+    public record ProfileImageResponse(Long userId, String profileImageUrl) {}
+
+    public record ProfileImageUrlRequest(@NotBlank String imageUrl) {}
 }

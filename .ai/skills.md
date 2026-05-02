@@ -8,6 +8,7 @@
 - MySQL
 - Lombok
 - Gradle (Groovy DSL)
+- AWS SDK v2 (`software.amazon.awssdk:s3`) — S3 파일 저장, Presigned URL 발급
 
 ## 테스트
 - JUnit 5

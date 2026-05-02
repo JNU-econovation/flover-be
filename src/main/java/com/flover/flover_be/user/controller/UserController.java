@@ -1,6 +1,7 @@
 package com.flover.flover_be.user.controller;
 
 import com.flover.flover_be.global.auth.LoginUserId;
+import com.flover.flover_be.global.storage.StorageDto;
 import com.flover.flover_be.user.dto.UserDto;
 import com.flover.flover_be.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,5 +26,25 @@ public class UserController {
             @RequestBody @Valid UserDto.NicknameRequest request
     ) {
         return ResponseEntity.ok(userService.updateNickname(userId, request.nickname()));
+    }
+
+    @Operation(summary = "프로필 이미지 업로드 URL 발급",
+            description = "S3 Presigned URL을 발급합니다. 프론트엔드는 해당 URL로 직접 PUT 업로드 후 imageUrl을 저장 API로 전달합니다.")
+    @GetMapping("/me/profile-image/upload-url")
+    public ResponseEntity<StorageDto.PresignedUploadUrlResponse> getProfileImageUploadUrl(
+            @LoginUserId Long userId,
+            @RequestParam String contentType
+    ) {
+        return ResponseEntity.ok(userService.generateProfileImagePresignedUrl(userId, contentType));
+    }
+
+    @Operation(summary = "프로필 이미지 URL 저장(수정)",
+            description = "프론트엔드가 S3 업로드 완료 후 imageUrl을 전달하면 DB에 저장합니다. 기존 이미지는 S3에서 삭제시킵니다.")
+    @PutMapping("/me/profile-image")
+    public ResponseEntity<UserDto.ProfileImageResponse> updateProfileImage(
+            @LoginUserId Long userId,
+            @RequestBody @Valid UserDto.ProfileImageUrlRequest request
+    ) {
+        return ResponseEntity.ok(userService.saveProfileImageUrl(userId, request.imageUrl()));
     }
 }
