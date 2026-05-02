@@ -15,6 +15,8 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.springframework.util.StringUtils.*;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -61,6 +63,9 @@ public class S3StorageService {
         }
         try {
             String key = extractKey(objectUrl);
+            if (!hasText(key)) {
+                return;
+            }
             s3Client.deleteObject(r -> r.bucket(bucket).key(key));
         } catch (S3Exception e) {
             log.warn("Failed to delete S3 object: {}", objectUrl, e);
@@ -72,8 +77,13 @@ public class S3StorageService {
     }
 
     private String extractKey(String objectUrl) {
-        String prefix = "https://%s.s3.%s.amazonaws.com/".formatted(bucket, region);
-        return objectUrl.substring(prefix.length());
+        try {
+            String path = java.net.URI.create(objectUrl).getPath();
+            return (path != null && path.startsWith("/")) ? path.substring(1) : path;
+        } catch (IllegalArgumentException e) {
+            log.warn("Malformed S3 object URL: {}", objectUrl);
+            return "";
+        }
     }
 
     private void validateContentType(String contentType) {
