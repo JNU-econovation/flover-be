@@ -46,6 +46,7 @@ class UserServiceTest {
         // then
         assertThat(result.nickname()).isEqualTo("닉네임");
         assertThat(result.level()).isEqualTo(1);
+        assertThat(result.title()).isEqualTo("쓰봉이");
         assertThat(result.profileImageUrl()).isEqualTo("https://img.url/profile.png");
     }
 

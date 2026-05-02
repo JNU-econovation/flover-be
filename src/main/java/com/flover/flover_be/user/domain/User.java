@@ -42,6 +42,10 @@ public class User {
     @Column(name = "total_plogging_seconds", nullable = false, columnDefinition = "bigint default 0")
     private long totalPloggingSeconds = 0L;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "title", nullable = false)
+    private UserTitle title = UserTitle.쓰봉이;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -76,5 +80,6 @@ public class User {
         this.totalPloggingSeconds += seconds;
         this.experience = (this.totalPloggingSeconds / EXP_GRANT_INTERVAL_SECONDS) * EXP_PER_INTERVAL;
         this.level = (int) (this.experience / EXPERIENCE_PER_LEVEL) + 1;
+        this.title = UserTitle.of(this.level);
     }
 }
