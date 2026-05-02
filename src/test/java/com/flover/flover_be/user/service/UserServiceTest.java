@@ -1,5 +1,6 @@
 package com.flover.flover_be.user.service;
 
+import com.flover.flover_be.global.storage.StorageDto;
 import com.flover.flover_be.user.domain.User;
 import com.flover.flover_be.user.dto.UserDto;
 import com.flover.flover_be.user.exception.UserException;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.verify;
 class UserServiceTest {
 
     @Mock private UserRepository userRepository;
+    @Mock private ProfileImageStorageService profileImageStorageService;
     @InjectMocks private UserService userService;
 
     @DisplayName("닉네임을 정상적으로 변경한다")
@@ -87,5 +89,87 @@ class UserServiceTest {
 
         // then
         verify(userRepository, never()).existsByNickname(anyString());
+    }
+
+    @DisplayName("Presigned URL 발급 시 유저 존재 확인 후 URL을 반환한다")
+    @Test
+    void generate_profile_image_presigned_url_성공() {
+        // given
+        Long userId = 1L;
+        String contentType = "image/png";
+        String uploadUrl = "https://bucket.s3.amazonaws.com/presigned";
+        String imageUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/users/1/profile/uuid.png";
+        User user = User.create(1L, "test@test.com", "nickname", null);
+        StorageDto.PresignedUploadUrlResponse expected = new StorageDto.PresignedUploadUrlResponse(uploadUrl, imageUrl);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(profileImageStorageService.generatePresignedUploadUrl(userId, contentType)).willReturn(expected);
+
+        // when
+        StorageDto.PresignedUploadUrlResponse result = userService.generateProfileImagePresignedUrl(userId, contentType);
+
+        // then
+        assertThat(result.uploadUrl()).isEqualTo(uploadUrl);
+        assertThat(result.objectUrl()).isEqualTo(imageUrl);
+    }
+
+    @DisplayName("Presigned URL 발급 시 유저가 없으면 예외가 발생한다")
+    @Test
+    void generate_profile_image_presigned_url_유저없음_예외() {
+        // given
+        given(userRepository.findById(anyLong())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> userService.generateProfileImagePresignedUrl(1L, "image/png"))
+                .isInstanceOf(UserException.class);
+    }
+
+    @DisplayName("기존 프로필 이미지가 없을 때 새 URL을 저장한다")
+    @Test
+    void save_profile_image_url_기존없음_성공() {
+        // given
+        Long userId = 1L;
+        String newImageUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/users/1/profile/uuid.png";
+        User user = User.create(1L, "test@test.com", "nickname", null);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+        // when
+        UserDto.ProfileImageResponse result = userService.saveProfileImageUrl(userId, newImageUrl);
+
+        // then
+        assertThat(result.profileImageUrl()).isEqualTo(newImageUrl);
+        assertThat(user.getProfileImageUrl()).isEqualTo(newImageUrl);
+        verify(profileImageStorageService).deleteIfOwnedByBucket(null);
+    }
+
+    @DisplayName("기존 프로필 이미지가 있으면 교체 시 삭제를 요청한다")
+    @Test
+    void save_profile_image_url_기존있음_삭제후_저장() {
+        // given
+        Long userId = 1L;
+        String oldImageUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/users/1/profile/old.png";
+        String newImageUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/users/1/profile/new.png";
+        User user = User.create(1L, "test@test.com", "nickname", oldImageUrl);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+        // when
+        userService.saveProfileImageUrl(userId, newImageUrl);
+
+        // then
+        verify(profileImageStorageService).deleteIfOwnedByBucket(oldImageUrl);
+        assertThat(user.getProfileImageUrl()).isEqualTo(newImageUrl);
+    }
+
+    @DisplayName("프로필 이미지 URL 저장 시 유저가 없으면 예외가 발생한다")
+    @Test
+    void save_profile_image_url_유저없음_예외() {
+        // given
+        given(userRepository.findById(anyLong())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> userService.saveProfileImageUrl(1L, "https://example.com/img.png"))
+                .isInstanceOf(UserException.class);
     }
 }

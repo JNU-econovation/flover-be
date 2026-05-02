@@ -1,5 +1,6 @@
 package com.flover.flover_be.global.auth;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flover.flover_be.global.jwt.JwtProvider;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.DisplayName;
@@ -7,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -20,6 +22,7 @@ import static org.mockito.Mockito.*;
 class JwtAuthenticationFilterTest {
 
     @Mock private JwtProvider jwtProvider;
+    @Spy private ObjectMapper objectMapper = new ObjectMapper();
     @InjectMocks private JwtAuthenticationFilter filter;
 
     @DisplayName("유효한 토큰이면 userId가 request attribute에 저장된다")
