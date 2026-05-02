@@ -21,7 +21,7 @@ public class UserService {
     public UserDto.UserInfoResponse findUserInfo(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
-        return new UserDto.UserInfoResponse(user.getNickname(), user.getLevel(), user.getTitle(), user.getProfileImageUrl());
+        return new UserDto.UserInfoResponse(user.getNickname(), user.getLevel(), user.getTitle().getDisplayName(), user.getProfileImageUrl());
     }
 
     @Transactional

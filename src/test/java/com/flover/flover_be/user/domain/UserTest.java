@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.flover.flover_be.user.exception.UserException;
+import com.flover.flover_be.user.domain.UserTitle;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -22,7 +23,7 @@ class UserTest {
         assertThat(user.getLevel()).isEqualTo(1);
         assertThat(user.getExperience()).isZero();
         assertThat(user.getTotalPloggingSeconds()).isZero();
-        assertThat(user.getTitle()).isEqualTo("쓰봉이");
+        assertThat(user.getTitle()).isEqualTo(UserTitle.쓰봉이);
     }
 
     @DisplayName("Update nickname and profile image")
@@ -66,7 +67,7 @@ class UserTest {
         assertThat(user.getTotalPloggingSeconds()).isEqualTo(3600L);
         assertThat(user.getExperience()).isEqualTo(720L);  // 3600 / 5 * 1
         assertThat(user.getLevel()).isEqualTo(2);           // 720 / 720 + 1
-        assertThat(user.getTitle()).isEqualTo("새싹 수거자"); // level 2
+        assertThat(user.getTitle()).isEqualTo(UserTitle.새싹_수거자); // level 2
     }
 
     @DisplayName("5초 미만 자투리 시간은 경험치에 반영되지 않는다")
@@ -100,7 +101,7 @@ class UserTest {
         user.addPloggingTimeSeconds(3600L * 17); // 17시간 → level 18
         // 17시간 = 3600 * 17 = 61200초 → EXP = 61200/5 = 12240 → level = 12240/720+1 = 18
         // level 18 → 쓰줍 고수 (15 이상 20 미만)
-        assertThat(user.getTitle()).isEqualTo("쓰줍 고수");
+        assertThat(user.getTitle()).isEqualTo(UserTitle.쓰줍_고수);
     }
 
     @DisplayName("레벨 기준과 정확히 일치하면 해당 칭호가 적용된다")
@@ -112,7 +113,7 @@ class UserTest {
         // level 5 = EXP 2880 = totalSeconds 14400 (4시간)
         user.addPloggingTimeSeconds(3600L * 4); // 4시간 → level 5
         assertThat(user.getLevel()).isEqualTo(5);
-        assertThat(user.getTitle()).isEqualTo("쓰줍 초보자");
+        assertThat(user.getTitle()).isEqualTo(UserTitle.쓰줍_초보자);
     }
 
     @DisplayName("플로깅 시간이 0 이하이면 예외가 발생한다")

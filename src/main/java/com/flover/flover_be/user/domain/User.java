@@ -42,8 +42,9 @@ public class User {
     @Column(name = "total_plogging_seconds", nullable = false, columnDefinition = "bigint default 0")
     private long totalPloggingSeconds = 0L;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "title", nullable = false)
-    private String title = UserTitle.쓰봉이.getDisplayName();
+    private UserTitle title = UserTitle.쓰봉이;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

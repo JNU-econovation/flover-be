@@ -3,6 +3,10 @@ package com.flover.flover_be.user.domain;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
+
 @Getter
 @RequiredArgsConstructor
 public enum UserTitle {
@@ -27,16 +31,20 @@ public enum UserTitle {
     private final int minLevel;
     private final String displayName;
 
-    // 현재 레벨 이하에서 가장 높은 칭호 반환
-    public static String of(int level) {
-        String result = 쓰봉이.displayName;
+    private static final NavigableMap<Integer, UserTitle> LEVEL_MAP = new TreeMap<>();
+
+    static {
         for (UserTitle title : values()) {
-            if (level >= title.minLevel) {
-                result = title.displayName;
-            } else {
-                break;
-            }
+            LEVEL_MAP.put(title.minLevel, title);
         }
-        return result;
+    }
+
+    // 현재 레벨 이하에서 가장 높은 칭호 반환
+    public static UserTitle of(int level) {
+        Map.Entry<Integer, UserTitle> entry = LEVEL_MAP.floorEntry(level);
+        if (entry == null) {
+            return 쓰봉이;
+        }
+        return entry.getValue();
     }
 }
