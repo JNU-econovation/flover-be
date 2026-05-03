@@ -206,6 +206,7 @@ class PloggingServiceTest {
                 2000, 4000, 100, 600, 0, "장소B",
                 37.5, 127.0, 37.51, 127.01, null);
 
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(ploggingSessionRepository.findAllByUserIdOrderByStartedAtDesc(userId, pageable))
                 .willReturn(new SliceImpl<>(List.of(newer, older), pageable, false));
 
@@ -233,6 +234,7 @@ class PloggingServiceTest {
                 1000, 2000, 50, 300, 0, "장소A",
                 37.5, 127.0, 37.51, 127.01, null);
 
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(ploggingSessionRepository.findAllByUserIdOrderByStartedAtDesc(userId, pageable))
                 .willReturn(new SliceImpl<>(List.of(session), pageable, true));
 
@@ -243,12 +245,26 @@ class PloggingServiceTest {
         assertThat(result.hasNext()).isTrue();
     }
 
+    @DisplayName("존재하지 않는 유저로 플로깅 기록 조회 시 예외가 발생한다")
+    @Test
+    void find_sessions_유저없음_예외() {
+        // given
+        Pageable pageable = PageRequest.of(0, 20);
+        given(userRepository.findById(anyLong())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> ploggingService.findSessions(1L, pageable))
+                .isInstanceOf(UserException.class);
+    }
+
     @DisplayName("플로깅 기록이 없으면 빈 리스트를 반환한다")
     @Test
     void find_sessions_빈_결과() {
         // given
         Long userId = 1L;
         Pageable pageable = PageRequest.of(0, 20);
+        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(ploggingSessionRepository.findAllByUserIdOrderByStartedAtDesc(userId, pageable))
                 .willReturn(new SliceImpl<>(List.of(), pageable, false));
 

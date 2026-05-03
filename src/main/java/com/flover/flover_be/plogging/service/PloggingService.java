@@ -58,6 +58,7 @@ public class PloggingService {
 
     @Transactional(readOnly = true)
     public PloggingDto.SessionListResponse findSessions(Long userId, Pageable pageable) {
+        validateUserExists(userId);
         Slice<PloggingSession> slice = ploggingSessionRepository.findAllByUserIdOrderByStartedAtDesc(userId, pageable);
         List<PloggingDto.SessionSummaryResponse> content = slice.getContent().stream()
                 .map(session -> new PloggingDto.SessionSummaryResponse(
