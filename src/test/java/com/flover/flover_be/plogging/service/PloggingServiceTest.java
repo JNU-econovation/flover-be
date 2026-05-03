@@ -11,6 +11,9 @@ import com.flover.flover_be.plogging.repository.PloggingSessionRepository;
 import com.flover.flover_be.user.domain.User;
 import com.flover.flover_be.user.exception.UserException;
 import com.flover.flover_be.user.repository.UserRepository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.SliceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -181,6 +184,96 @@ class PloggingServiceTest {
         assertThat(result.ploggingSessionId()).isNull();
         verify(ploggingRoutePointRepository).saveAll(List.of());
         verify(ploggingPhotoRepository).saveAll(List.of());
+    }
+
+    @DisplayName("플로깅 기록 목록을 최신순으로 조회한다")
+    @Test
+    void find_sessions_성공() {
+        // given
+        Long userId = 1L;
+        Pageable pageable = PageRequest.of(0, 20);
+        LocalDateTime now = LocalDateTime.of(2026, 5, 4, 10, 0, 0);
+        User user = User.create(12345L, "test@test.com", "닉네임", null);
+
+        PloggingSession older = PloggingSession.create(
+                user, PloggingMode.FREE,
+                now.minusDays(1), now.minusDays(1).plusHours(1),
+                1000, 2000, 50, 300, 0, "장소A",
+                37.5, 127.0, 37.51, 127.01, null);
+        PloggingSession newer = PloggingSession.create(
+                user, PloggingMode.RECOMMENDED,
+                now, now.plusHours(1),
+                2000, 4000, 100, 600, 0, "장소B",
+                37.5, 127.0, 37.51, 127.01, null);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(ploggingSessionRepository.findAllByUserIdOrderByStartedAtDesc(userId, pageable))
+                .willReturn(new SliceImpl<>(List.of(newer, older), pageable, false));
+
+        // when
+        PloggingDto.SessionListResponse result = ploggingService.findSessions(userId, pageable);
+
+        // then
+        assertThat(result.content()).hasSize(2);
+        assertThat(result.content().get(0).placeName()).isEqualTo("장소B");
+        assertThat(result.content().get(1).placeName()).isEqualTo("장소A");
+        assertThat(result.content().get(0).mode()).isEqualTo(PloggingMode.RECOMMENDED);
+        assertThat(result.hasNext()).isFalse();
+    }
+
+    @DisplayName("다음 페이지가 있으면 hasNext가 true다")
+    @Test
+    void find_sessions_hasNext_true() {
+        // given
+        Long userId = 1L;
+        Pageable pageable = PageRequest.of(0, 1);
+        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        PloggingSession session = PloggingSession.create(
+                user, PloggingMode.FREE,
+                LocalDateTime.now(), LocalDateTime.now().plusHours(1),
+                1000, 2000, 50, 300, 0, "장소A",
+                37.5, 127.0, 37.51, 127.01, null);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(ploggingSessionRepository.findAllByUserIdOrderByStartedAtDesc(userId, pageable))
+                .willReturn(new SliceImpl<>(List.of(session), pageable, true));
+
+        // when
+        PloggingDto.SessionListResponse result = ploggingService.findSessions(userId, pageable);
+
+        // then
+        assertThat(result.hasNext()).isTrue();
+    }
+
+    @DisplayName("존재하지 않는 유저로 플로깅 기록 조회 시 예외가 발생한다")
+    @Test
+    void find_sessions_유저없음_예외() {
+        // given
+        Pageable pageable = PageRequest.of(0, 20);
+        given(userRepository.findById(anyLong())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> ploggingService.findSessions(1L, pageable))
+                .isInstanceOf(UserException.class);
+    }
+
+    @DisplayName("플로깅 기록이 없으면 빈 리스트를 반환한다")
+    @Test
+    void find_sessions_빈_결과() {
+        // given
+        Long userId = 1L;
+        Pageable pageable = PageRequest.of(0, 20);
+        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(ploggingSessionRepository.findAllByUserIdOrderByStartedAtDesc(userId, pageable))
+                .willReturn(new SliceImpl<>(List.of(), pageable, false));
+
+        // when
+        PloggingDto.SessionListResponse result = ploggingService.findSessions(userId, pageable);
+
+        // then
+        assertThat(result.content()).isEmpty();
+        assertThat(result.hasNext()).isFalse();
     }
 
     private PloggingDto.CompleteRequest buildRequest(
