@@ -37,6 +37,7 @@ public class UserService {
         return new UserDto.NicknameResponse(user.getId(), user.getNickname());
     }
 
+    @Transactional(readOnly = true)
     public StorageDto.PresignedUploadUrlResponse generateProfileImagePresignedUrl(Long userId, String contentType) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));

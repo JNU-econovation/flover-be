@@ -1,6 +1,7 @@
 package com.flover.flover_be.plogging.controller;
 
 import com.flover.flover_be.global.auth.LoginUserId;
+import com.flover.flover_be.global.storage.StorageDto;
 import com.flover.flover_be.plogging.dto.PloggingDto;
 import com.flover.flover_be.plogging.service.PloggingService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,9 +9,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Plogging", description = "플로깅 API")
@@ -29,5 +32,25 @@ public class PloggingController {
             @RequestBody @Valid PloggingDto.CompleteRequest request
     ) {
         return ResponseEntity.ok(ploggingService.complete(userId, request));
+    }
+
+    @Operation(summary = "지도 이미지 업로드 URL 발급",
+            description = "플로깅 경로 지도 이미지를 S3에 직접 업로드하기 위한 Presigned URL을 발급합니다.")
+    @GetMapping("/map-image/upload-url")
+    public ResponseEntity<StorageDto.PresignedUploadUrlResponse> getMapImageUploadUrl(
+            @LoginUserId Long userId,
+            @RequestParam String contentType
+    ) {
+        return ResponseEntity.ok(ploggingService.generateMapImagePresignedUrl(userId, contentType));
+    }
+
+    @Operation(summary = "플로깅 인증샷 업로드 URL 발급",
+            description = "플로깅 인증샷을 S3에 직접 업로드하기 위한 Presigned URL을 발급합니다.")
+    @GetMapping("/photo/upload-url")
+    public ResponseEntity<StorageDto.PresignedUploadUrlResponse> getPhotoUploadUrl(
+            @LoginUserId Long userId,
+            @RequestParam String contentType
+    ) {
+        return ResponseEntity.ok(ploggingService.generatePhotoPresignedUrl(userId, contentType));
     }
 }

@@ -107,6 +107,10 @@ public class KakaoAuthException extends BusinessException {
 - 허용 Content-Type은 서버에서 검증하며, Presigned URL 서명 시에도 Content-Type을 고정한다.
 - `S3Client`와 `S3Presigner` 모두 `AwsCredentialsProvider` Bean을 공유한다.
 
+## import 규칙
+- 와일드카드 import(`import org.springframework.web.bind.annotation.*`)를 사용하지 않는다.
+- 항상 사용하는 클래스를 개별로 명시한다.
+
 ## 안티패턴 금지
 - Controller에서 Repository를 직접 호출하지 않는다.
 - `@Autowired` 필드 주입을 사용하지 않는다.
