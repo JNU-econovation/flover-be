@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,10 +27,13 @@ public class PloggingController {
 
     private final PloggingService ploggingService;
 
-    @Operation(summary = "플로깅 기록 전체 조회", description = "로그인한 사용자의 플로깅 기록 목록을 최신순으로 반환합니다.")
+    @Operation(summary = "플로깅 기록 전체 조회", description = "로그인한 사용자의 플로깅 기록 목록을 최신순으로 반환합니다. 무한 스크롤을 위한 페이징을 지원합니다.")
     @GetMapping
-    public ResponseEntity<List<PloggingDto.SessionSummaryResponse>> getSessions(@LoginUserId Long userId) {
-        return ResponseEntity.ok(ploggingService.findSessions(userId));
+    public ResponseEntity<PloggingDto.SessionListResponse> getSessions(
+            @LoginUserId Long userId,
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(ploggingService.findSessions(userId, pageable));
     }
 
     @Operation(summary = "플로깅 완료 기록 저장",

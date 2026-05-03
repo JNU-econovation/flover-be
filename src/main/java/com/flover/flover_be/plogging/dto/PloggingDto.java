@@ -48,4 +48,9 @@ public class PloggingDto {
             LocalDateTime finishedAt,
             int distanceMeters
     ) {}
+
+    public record SessionListResponse(
+            List<SessionSummaryResponse> content,
+            boolean hasNext
+    ) {}
 }

@@ -1,6 +1,8 @@
 package com.flover.flover_be.plogging.service;
 
 import com.flover.flover_be.global.storage.StorageDto;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import com.flover.flover_be.plogging.domain.PloggingPhoto;
 import com.flover.flover_be.plogging.domain.PloggingRoutePoint;
 import com.flover.flover_be.plogging.domain.PloggingSession;
@@ -55,9 +57,9 @@ public class PloggingService {
     }
 
     @Transactional(readOnly = true)
-    public List<PloggingDto.SessionSummaryResponse> findSessions(Long userId) {
-        return ploggingSessionRepository.findAllByUserIdOrderByStartedAtDesc(userId)
-                .stream()
+    public PloggingDto.SessionListResponse findSessions(Long userId, Pageable pageable) {
+        Slice<PloggingSession> slice = ploggingSessionRepository.findAllByUserIdOrderByStartedAtDesc(userId, pageable);
+        List<PloggingDto.SessionSummaryResponse> content = slice.getContent().stream()
                 .map(session -> new PloggingDto.SessionSummaryResponse(
                         session.getId(),
                         session.getMode(),
@@ -67,6 +69,7 @@ public class PloggingService {
                         session.getDistanceMeters()
                 ))
                 .toList();
+        return new PloggingDto.SessionListResponse(content, slice.hasNext());
     }
 
     @Transactional(readOnly = true)
