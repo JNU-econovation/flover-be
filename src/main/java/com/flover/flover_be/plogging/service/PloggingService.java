@@ -54,16 +54,21 @@ public class PloggingService {
         return new PloggingDto.CompleteResponse(savedSession.getId());
     }
 
+    @Transactional(readOnly = true)
     public StorageDto.PresignedUploadUrlResponse generateMapImagePresignedUrl(Long userId, String contentType) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+        validateUserExists(userId);
         return ploggingStorageService.generateMapImagePresignedUrl(userId, contentType);
     }
 
+    @Transactional(readOnly = true)
     public StorageDto.PresignedUploadUrlResponse generatePhotoPresignedUrl(Long userId, String contentType) {
+        validateUserExists(userId);
+        return ploggingStorageService.generatePhotoPresignedUrl(userId, contentType);
+    }
+
+    private void validateUserExists(Long userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
-        return ploggingStorageService.generatePhotoPresignedUrl(userId, contentType);
     }
 
     private void saveRoutePoints(PloggingSession session, List<PloggingDto.RoutePointRequest> routePoints) {
