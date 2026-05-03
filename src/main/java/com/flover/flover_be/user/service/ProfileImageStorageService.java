@@ -9,11 +9,13 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ProfileImageStorageService {
 
+    private static final String PROFILE_IMAGE_PATH_TEMPLATE = "users/%d/profile";
+
     private final S3StorageService s3StorageService;
 
     public StorageDto.PresignedUploadUrlResponse generatePresignedUploadUrl(Long userId, String contentType) {
         return s3StorageService.generatePresignedUploadUrl(
-                "users/%d/profile".formatted(userId), contentType);
+                PROFILE_IMAGE_PATH_TEMPLATE.formatted(userId), contentType);
     }
 
     public void deleteIfOwnedByBucket(String objectUrl) {
