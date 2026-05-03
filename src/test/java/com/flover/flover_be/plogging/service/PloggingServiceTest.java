@@ -183,6 +183,54 @@ class PloggingServiceTest {
         verify(ploggingPhotoRepository).saveAll(List.of());
     }
 
+    @DisplayName("플로깅 기록 목록을 최신순으로 조회한다")
+    @Test
+    void find_sessions_성공() {
+        // given
+        Long userId = 1L;
+        LocalDateTime now = LocalDateTime.of(2026, 5, 4, 10, 0, 0);
+        User user = User.create(12345L, "test@test.com", "닉네임", null);
+
+        PloggingSession older = PloggingSession.create(
+                user, PloggingMode.FREE,
+                now.minusDays(1), now.minusDays(1).plusHours(1),
+                1000, 2000, 50, 300, 0, "장소A",
+                37.5, 127.0, 37.51, 127.01, null);
+        PloggingSession newer = PloggingSession.create(
+                user, PloggingMode.RECOMMENDED,
+                now, now.plusHours(1),
+                2000, 4000, 100, 600, 0, "장소B",
+                37.5, 127.0, 37.51, 127.01, null);
+
+        given(ploggingSessionRepository.findAllByUserIdOrderByStartedAtDesc(userId))
+                .willReturn(List.of(newer, older));
+
+        // when
+        List<PloggingDto.SessionSummaryResponse> result = ploggingService.findSessions(userId);
+
+        // then
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).placeName()).isEqualTo("장소B");
+        assertThat(result.get(1).placeName()).isEqualTo("장소A");
+        assertThat(result.get(0).mode()).isEqualTo(PloggingMode.RECOMMENDED);
+        assertThat(result.get(0).distanceMeters()).isEqualTo(2000);
+    }
+
+    @DisplayName("플로깅 기록이 없으면 빈 리스트를 반환한다")
+    @Test
+    void find_sessions_빈_결과() {
+        // given
+        Long userId = 1L;
+        given(ploggingSessionRepository.findAllByUserIdOrderByStartedAtDesc(userId))
+                .willReturn(List.of());
+
+        // when
+        List<PloggingDto.SessionSummaryResponse> result = ploggingService.findSessions(userId);
+
+        // then
+        assertThat(result).isEmpty();
+    }
+
     private PloggingDto.CompleteRequest buildRequest(
             List<PloggingDto.RoutePointRequest> routePoints,
             List<String> photoUrls
