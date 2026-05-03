@@ -1,5 +1,6 @@
 package com.flover.flover_be.plogging.service;
 
+import com.flover.flover_be.global.storage.StorageDto;
 import com.flover.flover_be.plogging.domain.PloggingPhoto;
 import com.flover.flover_be.plogging.domain.PloggingRoutePoint;
 import com.flover.flover_be.plogging.domain.PloggingSession;
@@ -26,6 +27,7 @@ public class PloggingService {
     private final PloggingSessionRepository ploggingSessionRepository;
     private final PloggingRoutePointRepository ploggingRoutePointRepository;
     private final PloggingPhotoRepository ploggingPhotoRepository;
+    private final PloggingStorageService ploggingStorageService;
 
     @Transactional
     public PloggingDto.CompleteResponse complete(Long userId, PloggingDto.CompleteRequest request) {
@@ -50,6 +52,18 @@ public class PloggingService {
         user.addPloggingTimeSeconds(request.ploggingSeconds());
 
         return new PloggingDto.CompleteResponse(savedSession.getId());
+    }
+
+    public StorageDto.PresignedUploadUrlResponse generateMapImagePresignedUrl(Long userId, String contentType) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+        return ploggingStorageService.generateMapImagePresignedUrl(userId, contentType);
+    }
+
+    public StorageDto.PresignedUploadUrlResponse generatePhotoPresignedUrl(Long userId, String contentType) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+        return ploggingStorageService.generatePhotoPresignedUrl(userId, contentType);
     }
 
     private void saveRoutePoints(PloggingSession session, List<PloggingDto.RoutePointRequest> routePoints) {
