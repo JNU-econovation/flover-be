@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,6 +24,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class PloggingController {
 
     private final PloggingService ploggingService;
+
+    @Operation(summary = "플로깅 기록 전체 조회", description = "로그인한 사용자의 플로깅 기록 목록을 최신순으로 반환합니다.")
+    @GetMapping
+    public ResponseEntity<List<PloggingDto.SessionSummaryResponse>> getSessions(@LoginUserId Long userId) {
+        return ResponseEntity.ok(ploggingService.findSessions(userId));
+    }
 
     @Operation(summary = "플로깅 완료 기록 저장",
             description = "플로깅 완료 데이터를 저장합니다. 지도 이미지와 인증샷은 S3 URL로 전달합니다.")

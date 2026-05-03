@@ -55,6 +55,21 @@ public class PloggingService {
     }
 
     @Transactional(readOnly = true)
+    public List<PloggingDto.SessionSummaryResponse> findSessions(Long userId) {
+        return ploggingSessionRepository.findAllByUserIdOrderByStartedAtDesc(userId)
+                .stream()
+                .map(session -> new PloggingDto.SessionSummaryResponse(
+                        session.getId(),
+                        session.getMode(),
+                        session.getPlaceName(),
+                        session.getStartedAt(),
+                        session.getFinishedAt(),
+                        session.getDistanceMeters()
+                ))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public StorageDto.PresignedUploadUrlResponse generateMapImagePresignedUrl(Long userId, String contentType) {
         validateUserExists(userId);
         return ploggingStorageService.generateMapImagePresignedUrl(userId, contentType);

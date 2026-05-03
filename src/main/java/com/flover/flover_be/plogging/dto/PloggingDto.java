@@ -39,4 +39,13 @@ public class PloggingDto {
     ) {}
 
     public record CompleteResponse(Long ploggingSessionId) {}
+
+    public record SessionSummaryResponse(
+            Long ploggingSessionId,
+            PloggingMode mode,
+            String placeName,
+            LocalDateTime startedAt,
+            LocalDateTime finishedAt,
+            int distanceMeters
+    ) {}
 }
