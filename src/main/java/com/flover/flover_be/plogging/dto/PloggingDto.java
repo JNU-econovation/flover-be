@@ -53,4 +53,19 @@ public class PloggingDto {
             List<SessionSummaryResponse> content,
             boolean hasNext
     ) {}
+
+    public record SessionDetailResponse(
+            Long ploggingSessionId,
+            PloggingMode mode,
+            LocalDateTime startedAt,
+            LocalDateTime finishedAt,
+            String placeName,
+            int distanceMeters,
+            int stepCount,
+            int caloriesBurned,
+            int ploggingSeconds,
+            int restSeconds,
+            String mapImageUrl,
+            List<String> photoUrls
+    ) {}
 }
