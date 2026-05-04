@@ -10,7 +10,13 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "User", description = "사용자 API")
 @RestController
@@ -24,6 +30,13 @@ public class UserController {
     @GetMapping("/{userId}")
     public ResponseEntity<UserDto.UserInfoResponse> getUserInfo(@PathVariable @Positive Long userId) {
         return ResponseEntity.ok(userService.findUserInfo(userId));
+    }
+
+    @Operation(summary = "플로깅 누적 통계 조회",
+            description = "마이페이지용 로그인 사용자의 총 플로깅 횟수, 걸음 수, 거리를 반환합니다.")
+    @GetMapping("/me/plogging-stats")
+    public ResponseEntity<UserDto.PloggingStatsResponse> getPloggingStats(@LoginUserId Long userId) {
+        return ResponseEntity.ok(userService.findPloggingStats(userId));
     }
 
     @Operation(summary = "닉네임 수정", description = "사용자 닉네임 변경")
