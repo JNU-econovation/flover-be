@@ -112,14 +112,11 @@ public class PloggingService {
         LocalDateTime start = LocalDateTime.of(year, month, 1, 0, 0, 0);
         LocalDateTime end = start.plusMonths(1);
         List<PloggingSessionRepository.SessionStatsView> sessions = fetchPeriodStats(userId, start, end);
+        SessionAggregate agg = SessionAggregate.from(sessions);
         return new PloggingDto.MonthlyStatsResponse(
-                year,
-                month,
-                sessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getStepCount).sum(),
-                sessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getDistanceMeters).sum(),
-                sessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getCaloriesBurned).sum(),
-                sessions.size(),
-                sessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getPloggingSeconds).sum()
+                year, month,
+                agg.stepCount(), agg.distanceMeters(), agg.caloriesBurned(),
+                sessions.size(), agg.ploggingSeconds()
         );
     }
 
@@ -138,14 +135,11 @@ public class PloggingService {
                 .mapToObj(startDate::plusDays)
                 .map(date -> {
                     List<PloggingSessionRepository.SessionStatsView> daySessions = byDate.getOrDefault(date, List.of());
+                    SessionAggregate agg = SessionAggregate.from(daySessions);
                     return new PloggingDto.DailyStatsResponse(
-                            date,
-                            date.getDayOfWeek(),
-                            daySessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getStepCount).sum(),
-                            daySessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getDistanceMeters).sum(),
-                            daySessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getCaloriesBurned).sum(),
-                            daySessions.size(),
-                            daySessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getPloggingSeconds).sum()
+                            date, date.getDayOfWeek(),
+                            agg.stepCount(), agg.distanceMeters(), agg.caloriesBurned(),
+                            daySessions.size(), agg.ploggingSeconds()
                     );
                 })
                 .toList();
@@ -155,6 +149,19 @@ public class PloggingService {
 
     private List<PloggingSessionRepository.SessionStatsView> fetchPeriodStats(Long userId, LocalDateTime start, LocalDateTime end) {
         return ploggingSessionRepository.findSessionStatsInPeriod(userId, start, end);
+    }
+
+    private record SessionAggregate(long stepCount, long distanceMeters, long caloriesBurned, long ploggingSeconds) {
+        static SessionAggregate from(List<PloggingSessionRepository.SessionStatsView> sessions) {
+            long stepCount = 0, distanceMeters = 0, caloriesBurned = 0, ploggingSeconds = 0;
+            for (PloggingSessionRepository.SessionStatsView s : sessions) {
+                stepCount += s.getStepCount();
+                distanceMeters += s.getDistanceMeters();
+                caloriesBurned += s.getCaloriesBurned();
+                ploggingSeconds += s.getPloggingSeconds();
+            }
+            return new SessionAggregate(stepCount, distanceMeters, caloriesBurned, ploggingSeconds);
+        }
     }
 
     @Transactional(readOnly = true)
