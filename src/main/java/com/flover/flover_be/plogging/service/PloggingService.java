@@ -7,6 +7,8 @@ import com.flover.flover_be.plogging.domain.PloggingPhoto;
 import com.flover.flover_be.plogging.domain.PloggingRoutePoint;
 import com.flover.flover_be.plogging.domain.PloggingSession;
 import com.flover.flover_be.plogging.dto.PloggingDto;
+import com.flover.flover_be.plogging.exception.PloggingErrorCode;
+import com.flover.flover_be.plogging.exception.PloggingException;
 import com.flover.flover_be.plogging.repository.PloggingPhotoRepository;
 import com.flover.flover_be.plogging.repository.PloggingRoutePointRepository;
 import com.flover.flover_be.plogging.repository.PloggingSessionRepository;
@@ -71,6 +73,32 @@ public class PloggingService {
                 ))
                 .toList();
         return new PloggingDto.SessionListResponse(content, slice.hasNext());
+    }
+
+    @Transactional(readOnly = true)
+    public PloggingDto.SessionDetailResponse findSession(Long userId, Long ploggingSessionId) {
+        validateUserExists(userId);
+        PloggingSession session = ploggingSessionRepository.findByIdAndUserId(ploggingSessionId, userId)
+                .orElseThrow(() -> new PloggingException(PloggingErrorCode.PLOGGING_SESSION_NOT_FOUND));
+        List<String> photoUrls = ploggingPhotoRepository
+                .findAllByPloggingSessionIdOrderBySequenceAsc(ploggingSessionId)
+                .stream()
+                .map(PloggingPhoto::getImageUrl)
+                .toList();
+        return new PloggingDto.SessionDetailResponse(
+                session.getId(),
+                session.getMode(),
+                session.getStartedAt(),
+                session.getFinishedAt(),
+                session.getPlaceName(),
+                session.getDistanceMeters(),
+                session.getStepCount(),
+                session.getCaloriesBurned(),
+                session.getPloggingSeconds(),
+                session.getRestSeconds(),
+                session.getMapImageUrl(),
+                photoUrls
+        );
     }
 
     @Transactional(readOnly = true)

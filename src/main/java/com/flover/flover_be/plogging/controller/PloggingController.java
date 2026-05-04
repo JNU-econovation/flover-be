@@ -13,6 +13,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,6 +35,15 @@ public class PloggingController {
             @PageableDefault(size = 20) Pageable pageable
     ) {
         return ResponseEntity.ok(ploggingService.findSessions(userId, pageable));
+    }
+
+    @Operation(summary = "플로깅 기록 단건 조회", description = "로그인한 사용자의 특정 플로깅 기록 상세 정보를 조회합니다.")
+    @GetMapping("/{ploggingSessionId}")
+    public ResponseEntity<PloggingDto.SessionDetailResponse> getSession(
+            @LoginUserId Long userId,
+            @PathVariable Long ploggingSessionId
+    ) {
+        return ResponseEntity.ok(ploggingService.findSession(userId, ploggingSessionId));
     }
 
     @Operation(summary = "플로깅 완료 기록 저장",
