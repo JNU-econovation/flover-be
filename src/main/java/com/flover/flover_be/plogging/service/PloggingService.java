@@ -20,8 +20,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -99,6 +104,57 @@ public class PloggingService {
                 session.getMapImageUrl(),
                 photoUrls
         );
+    }
+
+    @Transactional(readOnly = true)
+    public PloggingDto.MonthlyStatsResponse findMonthlyStats(Long userId, int year, int month) {
+        validateUserExists(userId);
+        LocalDateTime start = LocalDateTime.of(year, month, 1, 0, 0, 0);
+        LocalDateTime end = start.plusMonths(1);
+        List<PloggingSessionRepository.SessionStatsView> sessions = fetchPeriodStats(userId, start, end);
+        return new PloggingDto.MonthlyStatsResponse(
+                year,
+                month,
+                sessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getStepCount).sum(),
+                sessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getDistanceMeters).sum(),
+                sessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getCaloriesBurned).sum(),
+                sessions.size(),
+                sessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getPloggingSeconds).sum()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public PloggingDto.WeeklyStatsResponse findWeeklyStats(Long userId, LocalDate startDate) {
+        validateUserExists(userId);
+        LocalDate endDate = startDate.plusDays(6);
+        LocalDateTime start = startDate.atStartOfDay();
+        LocalDateTime end = endDate.plusDays(1).atStartOfDay();
+        List<PloggingSessionRepository.SessionStatsView> sessions = fetchPeriodStats(userId, start, end);
+
+        Map<LocalDate, List<PloggingSessionRepository.SessionStatsView>> byDate = sessions.stream()
+                .collect(Collectors.groupingBy(s -> s.getFinishedAt().toLocalDate()));
+
+        List<PloggingDto.DailyStatsResponse> dailyStats = IntStream.range(0, 7)
+                .mapToObj(startDate::plusDays)
+                .map(date -> {
+                    List<PloggingSessionRepository.SessionStatsView> daySessions = byDate.getOrDefault(date, List.of());
+                    return new PloggingDto.DailyStatsResponse(
+                            date,
+                            date.getDayOfWeek(),
+                            daySessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getStepCount).sum(),
+                            daySessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getDistanceMeters).sum(),
+                            daySessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getCaloriesBurned).sum(),
+                            daySessions.size(),
+                            daySessions.stream().mapToLong(PloggingSessionRepository.SessionStatsView::getPloggingSeconds).sum()
+                    );
+                })
+                .toList();
+
+        return new PloggingDto.WeeklyStatsResponse(startDate, endDate, dailyStats);
+    }
+
+    private List<PloggingSessionRepository.SessionStatsView> fetchPeriodStats(Long userId, LocalDateTime start, LocalDateTime end) {
+        return ploggingSessionRepository.findSessionStatsInPeriod(userId, start, end);
     }
 
     @Transactional(readOnly = true)
