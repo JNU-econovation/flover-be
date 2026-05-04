@@ -5,6 +5,7 @@ import com.flover.flover_be.plogging.domain.PloggingPhoto;
 import com.flover.flover_be.plogging.domain.PloggingRoutePoint;
 import com.flover.flover_be.plogging.domain.PloggingSession;
 import com.flover.flover_be.plogging.dto.PloggingDto;
+import com.flover.flover_be.plogging.exception.PloggingException;
 import com.flover.flover_be.plogging.repository.PloggingPhotoRepository;
 import com.flover.flover_be.plogging.repository.PloggingRoutePointRepository;
 import com.flover.flover_be.plogging.repository.PloggingSessionRepository;
@@ -274,6 +275,96 @@ class PloggingServiceTest {
         // then
         assertThat(result.content()).isEmpty();
         assertThat(result.hasNext()).isFalse();
+    }
+
+    @DisplayName("플로깅 기록 단건 조회 시 상세 정보를 반환한다")
+    @Test
+    void find_session_성공() {
+        // given
+        Long userId = 1L;
+        Long sessionId = 10L;
+        LocalDateTime startedAt = LocalDateTime.of(2026, 5, 4, 10, 0, 0);
+        LocalDateTime finishedAt = LocalDateTime.of(2026, 5, 4, 10, 30, 0);
+        User user = User.create(12345L, "test@test.com", "닉네임", null);
+
+        PloggingSession session = PloggingSession.create(
+                user, PloggingMode.FREE,
+                startedAt, finishedAt,
+                3000, 4000, 150, 1800, 120,
+                "한강공원", 37.5, 127.0, 37.52, 127.02,
+                "https://s3.example.com/map.jpg"
+        );
+
+        PloggingPhoto photo1 = PloggingPhoto.create(session, 0, "https://s3.example.com/photo0.jpg");
+        PloggingPhoto photo2 = PloggingPhoto.create(session, 1, "https://s3.example.com/photo1.jpg");
+
+        given(ploggingSessionRepository.findByIdAndUserId(sessionId, userId)).willReturn(Optional.of(session));
+        given(ploggingPhotoRepository.findAllByPloggingSessionIdOrderBySequenceAsc(sessionId))
+                .willReturn(List.of(photo1, photo2));
+
+        // when
+        PloggingDto.SessionDetailResponse result = ploggingService.findSession(userId, sessionId);
+
+        // then
+        assertThat(result.mode()).isEqualTo(PloggingMode.FREE);
+        assertThat(result.startedAt()).isEqualTo(startedAt);
+        assertThat(result.finishedAt()).isEqualTo(finishedAt);
+        assertThat(result.placeName()).isEqualTo("한강공원");
+        assertThat(result.distanceMeters()).isEqualTo(3000);
+        assertThat(result.stepCount()).isEqualTo(4000);
+        assertThat(result.caloriesBurned()).isEqualTo(150);
+        assertThat(result.ploggingSeconds()).isEqualTo(1800);
+        assertThat(result.restSeconds()).isEqualTo(120);
+        assertThat(result.mapImageUrl()).isEqualTo("https://s3.example.com/map.jpg");
+        assertThat(result.photoUrls()).containsExactly(
+                "https://s3.example.com/photo0.jpg",
+                "https://s3.example.com/photo1.jpg"
+        );
+    }
+
+    @DisplayName("존재하지 않거나 본인 기록이 아닌 플로깅 세션 조회 시 예외가 발생한다")
+    @Test
+    void find_session_없거나_타인기록_예외() {
+        // given
+        Long userId = 1L;
+        Long sessionId = 999L;
+        given(ploggingSessionRepository.findByIdAndUserId(sessionId, userId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> ploggingService.findSession(userId, sessionId))
+                .isInstanceOf(PloggingException.class);
+    }
+
+    @DisplayName("인증샷 URL이 sequence 오름차순으로 반환된다")
+    @Test
+    void find_session_인증샷_sequence_순서() {
+        // given
+        Long userId = 1L;
+        Long sessionId = 10L;
+        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        PloggingSession session = PloggingSession.create(
+                user, PloggingMode.FREE,
+                LocalDateTime.of(2026, 5, 4, 9, 0, 0), LocalDateTime.of(2026, 5, 4, 9, 30, 0),
+                1000, 2000, 80, 600, 0,
+                "공원", 37.5, 127.0, 37.51, 127.01, null
+        );
+
+        PloggingPhoto first = PloggingPhoto.create(session, 0, "https://s3.example.com/first.jpg");
+        PloggingPhoto second = PloggingPhoto.create(session, 1, "https://s3.example.com/second.jpg");
+        PloggingPhoto third = PloggingPhoto.create(session, 2, "https://s3.example.com/third.jpg");
+
+        given(ploggingSessionRepository.findByIdAndUserId(sessionId, userId)).willReturn(Optional.of(session));
+        given(ploggingPhotoRepository.findAllByPloggingSessionIdOrderBySequenceAsc(sessionId))
+                .willReturn(List.of(first, second, third));
+
+        // when
+        PloggingDto.SessionDetailResponse result = ploggingService.findSession(userId, sessionId);
+
+        // then
+        assertThat(result.photoUrls()).hasSize(3);
+        assertThat(result.photoUrls().get(0)).isEqualTo("https://s3.example.com/first.jpg");
+        assertThat(result.photoUrls().get(1)).isEqualTo("https://s3.example.com/second.jpg");
+        assertThat(result.photoUrls().get(2)).isEqualTo("https://s3.example.com/third.jpg");
     }
 
     private PloggingDto.CompleteRequest buildRequest(
