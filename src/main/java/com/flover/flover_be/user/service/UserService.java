@@ -1,6 +1,7 @@
 package com.flover.flover_be.user.service;
 
 import com.flover.flover_be.global.storage.StorageDto;
+import com.flover.flover_be.plogging.repository.PloggingSessionRepository;
 import com.flover.flover_be.user.domain.User;
 import com.flover.flover_be.user.dto.UserDto;
 import com.flover.flover_be.user.exception.UserErrorCode;
@@ -16,6 +17,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final ProfileImageStorageService profileImageStorageService;
+    private final PloggingSessionRepository ploggingSessionRepository;
 
     @Transactional(readOnly = true)
     public UserDto.UserInfoResponse findUserInfo(Long userId) {
@@ -42,6 +44,16 @@ public class UserService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
         return profileImageStorageService.generatePresignedUploadUrl(userId, contentType);
+    }
+
+    @Transactional(readOnly = true)
+    public UserDto.PloggingStatsResponse findPloggingStats(Long userId) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+        long count = ploggingSessionRepository.countByUserId(userId);
+        long totalStepCount = ploggingSessionRepository.sumStepCountByUserId(userId);
+        long totalDistanceMeters = ploggingSessionRepository.sumDistanceByUserId(userId);
+        return new UserDto.PloggingStatsResponse(count, totalStepCount, totalDistanceMeters);
     }
 
     @Transactional
