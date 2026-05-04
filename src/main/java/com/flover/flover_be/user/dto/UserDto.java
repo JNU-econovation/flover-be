@@ -13,4 +13,10 @@ public class UserDto {
     public record ProfileImageUrlRequest(@NotBlank String imageUrl) {}
 
     public record UserInfoResponse(String nickname, int level, String title, String profileImageUrl) {}
+
+    public record PloggingStatsResponse(
+            long totalPloggingCount,
+            long totalStepCount,
+            long totalDistanceMeters
+    ) {}
 }
