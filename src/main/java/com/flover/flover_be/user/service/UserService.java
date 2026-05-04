@@ -46,10 +46,8 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserDto.PloggingStatsResponse findPloggingStats(Long userId) {
         getUserOrThrow(userId);
-        long count = ploggingSessionRepository.countByUserId(userId);
-        long totalStepCount = ploggingSessionRepository.sumStepCountByUserId(userId);
-        long totalDistanceMeters = ploggingSessionRepository.sumDistanceByUserId(userId);
-        return new UserDto.PloggingStatsResponse(count, totalStepCount, totalDistanceMeters);
+        PloggingSessionRepository.PloggingStatsView stats = ploggingSessionRepository.findStatsByUserId(userId);
+        return new UserDto.PloggingStatsResponse(stats.getCount(), stats.getTotalStepCount(), stats.getTotalDistanceMeters());
     }
 
     @Transactional

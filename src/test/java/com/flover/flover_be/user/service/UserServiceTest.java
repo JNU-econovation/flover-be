@@ -2,6 +2,7 @@ package com.flover.flover_be.user.service;
 
 import com.flover.flover_be.global.storage.StorageDto;
 import com.flover.flover_be.plogging.repository.PloggingSessionRepository;
+import com.flover.flover_be.plogging.repository.PloggingSessionRepository.PloggingStatsView;
 import com.flover.flover_be.user.domain.User;
 import com.flover.flover_be.user.dto.UserDto;
 import com.flover.flover_be.user.exception.UserErrorCode;
@@ -231,11 +232,10 @@ class UserServiceTest {
         // given
         Long userId = 1L;
         User user = User.create(12345L, "test@test.com", "닉네임", null);
+        PloggingStatsView stats = mockStats(3L, 12000L, 8500L);
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(ploggingSessionRepository.countByUserId(userId)).willReturn(3L);
-        given(ploggingSessionRepository.sumStepCountByUserId(userId)).willReturn(12000L);
-        given(ploggingSessionRepository.sumDistanceByUserId(userId)).willReturn(8500L);
+        given(ploggingSessionRepository.findStatsByUserId(userId)).willReturn(stats);
 
         // when
         UserDto.PloggingStatsResponse result = userService.findPloggingStats(userId);
@@ -252,11 +252,10 @@ class UserServiceTest {
         // given
         Long userId = 1L;
         User user = User.create(12345L, "test@test.com", "닉네임", null);
+        PloggingStatsView stats = mockStats(0L, 0L, 0L);
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(ploggingSessionRepository.countByUserId(userId)).willReturn(0L);
-        given(ploggingSessionRepository.sumStepCountByUserId(userId)).willReturn(0L);
-        given(ploggingSessionRepository.sumDistanceByUserId(userId)).willReturn(0L);
+        given(ploggingSessionRepository.findStatsByUserId(userId)).willReturn(stats);
 
         // when
         UserDto.PloggingStatsResponse result = userService.findPloggingStats(userId);
@@ -276,5 +275,13 @@ class UserServiceTest {
         // when & then
         assertThatThrownBy(() -> userService.findPloggingStats(1L))
                 .isInstanceOf(UserException.class);
+    }
+
+    private PloggingStatsView mockStats(long count, long totalStepCount, long totalDistanceMeters) {
+        return new PloggingStatsView() {
+            public long getCount() { return count; }
+            public long getTotalStepCount() { return totalStepCount; }
+            public long getTotalDistanceMeters() { return totalDistanceMeters; }
+        };
     }
 }

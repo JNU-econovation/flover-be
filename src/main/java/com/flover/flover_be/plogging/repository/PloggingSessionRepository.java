@@ -15,11 +15,12 @@ public interface PloggingSessionRepository extends JpaRepository<PloggingSession
 
     Optional<PloggingSession> findByIdAndUserId(Long id, Long userId);
 
-    long countByUserId(Long userId);
+    @Query("SELECT COUNT(p) AS count, COALESCE(SUM(p.stepCount), 0) AS totalStepCount, COALESCE(SUM(p.distanceMeters), 0) AS totalDistanceMeters FROM PloggingSession p WHERE p.user.id = :userId")
+    PloggingStatsView findStatsByUserId(@Param("userId") Long userId);
 
-    @Query("SELECT COALESCE(SUM(p.stepCount), 0) FROM PloggingSession p WHERE p.user.id = :userId")
-    long sumStepCountByUserId(@Param("userId") Long userId);
-
-    @Query("SELECT COALESCE(SUM(p.distanceMeters), 0) FROM PloggingSession p WHERE p.user.id = :userId")
-    long sumDistanceByUserId(@Param("userId") Long userId);
+    interface PloggingStatsView {
+        long getCount();
+        long getTotalStepCount();
+        long getTotalDistanceMeters();
+    }
 }
