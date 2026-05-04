@@ -111,6 +111,45 @@ public class KakaoAuthException extends BusinessException {
 - 와일드카드 import(`import org.springframework.web.bind.annotation.*`)를 사용하지 않는다.
 - 항상 사용하는 클래스를 개별로 명시한다.
 
+## JPQL 집계 쿼리 패턴
+- 여러 집계값을 조회할 때 쿼리를 여러 번 나눠 호출하지 않는다. 단일 JPQL 쿼리로 한 번에 가져온다.
+- 결과는 **인터페이스 기반 프로젝션(interface-based projection)** 으로 받는다. 엔티티 전체를 로드하지 않는다.
+- 프로젝션 인터페이스는 사용하는 Repository 인터페이스 내부에 중첩 인터페이스로 선언한다.
+- `SUM` 집계는 레코드가 없을 때 `null`을 반환하므로 `COALESCE`로 0 처리한다.
+
+```java
+// Repository
+@Query("SELECT COUNT(p) AS count, COALESCE(SUM(p.stepCount), 0) AS totalStepCount, COALESCE(SUM(p.distanceMeters), 0) AS totalDistanceMeters FROM PloggingSession p WHERE p.user.id = :userId")
+PloggingStatsView findStatsByUserId(@Param("userId") Long userId);
+
+interface PloggingStatsView {
+    long getCount();
+    long getTotalStepCount();
+    long getTotalDistanceMeters();
+}
+```
+
+## 서비스 내 다중 필드 집계 패턴
+- 컬렉션에서 여러 필드를 합산할 때 필드마다 스트림을 별도로 순회하지 않는다.
+- `private record`를 서비스 클래스 내부에 선언하고 정적 팩토리 메서드(`from`)에서 단일 루프로 모든 필드를 집계한다.
+- 월간/주간처럼 동일한 집계가 여러 곳에서 필요한 경우 이 record를 공통으로 재사용한다.
+
+```java
+// Service 내부
+private record SessionAggregate(long stepCount, long distanceMeters, long caloriesBurned, long ploggingSeconds) {
+    static SessionAggregate from(List<SessionStatsView> sessions) {
+        long stepCount = 0, distanceMeters = 0, caloriesBurned = 0, ploggingSeconds = 0;
+        for (SessionStatsView s : sessions) {
+            stepCount += s.getStepCount();
+            distanceMeters += s.getDistanceMeters();
+            caloriesBurned += s.getCaloriesBurned();
+            ploggingSeconds += s.getPloggingSeconds();
+        }
+        return new SessionAggregate(stepCount, distanceMeters, caloriesBurned, ploggingSeconds);
+    }
+}
+```
+
 ## 안티패턴 금지
 - Controller에서 Repository를 직접 호출하지 않는다.
 - `@Autowired` 필드 주입을 사용하지 않는다.
@@ -119,3 +158,4 @@ public class KakaoAuthException extends BusinessException {
 - 엔티티에 public setter를 사용하지 않는다.
 - 상태 변경은 의미 있는 도메인 메서드를 통해 수행한다. (예: changePassword)
 - `IllegalArgumentException`, `IllegalStateException` 등 표준 Java 예외를 도메인 로직에서 직접 던지지 않는다. 도메인 엔티티 내부에서도 커스텀 `BusinessException` 서브클래스를 사용한다.
+- 동일한 컬렉션을 필드별로 여러 번 순회해 집계하지 않는다. 단일 루프 또는 `private record`로 한 번에 처리한다.
