@@ -7,11 +7,12 @@ import com.flover.flover_be.plogging.service.PloggingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,6 +45,25 @@ public class PloggingController {
             @PathVariable Long ploggingSessionId
     ) {
         return ResponseEntity.ok(ploggingService.findSession(userId, ploggingSessionId));
+    }
+
+    @Operation(summary = "월간 플로깅 통계 조회", description = "지정한 연월의 플로깅 누적 통계를 반환합니다.")
+    @GetMapping("/monthly")
+    public ResponseEntity<PloggingDto.MonthlyStatsResponse> getMonthlyStats(
+            @LoginUserId Long userId,
+            @RequestParam int year,
+            @RequestParam int month
+    ) {
+        return ResponseEntity.ok(ploggingService.findMonthlyStats(userId, year, month));
+    }
+
+    @Operation(summary = "주간 플로깅 통계 조회", description = "startDate 기준 7일간의 날짜별 플로깅 통계를 반환합니다.")
+    @GetMapping("/weekly")
+    public ResponseEntity<PloggingDto.WeeklyStatsResponse> getWeeklyStats(
+            @LoginUserId Long userId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate
+    ) {
+        return ResponseEntity.ok(ploggingService.findWeeklyStats(userId, startDate));
     }
 
     @Operation(summary = "플로깅 완료 기록 저장",
