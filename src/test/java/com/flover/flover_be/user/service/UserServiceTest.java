@@ -1,6 +1,8 @@
 package com.flover.flover_be.user.service;
 
 import com.flover.flover_be.global.storage.StorageDto;
+import com.flover.flover_be.plogging.repository.PloggingSessionRepository;
+import com.flover.flover_be.plogging.repository.PloggingSessionRepository.PloggingStatsView;
 import com.flover.flover_be.user.domain.User;
 import com.flover.flover_be.user.dto.UserDto;
 import com.flover.flover_be.user.exception.UserErrorCode;
@@ -29,6 +31,7 @@ class UserServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private ProfileImageStorageService profileImageStorageService;
+    @Mock private PloggingSessionRepository ploggingSessionRepository;
     @InjectMocks private UserService userService;
 
     @DisplayName("유저 정보를 정상적으로 조회한다")
@@ -221,5 +224,64 @@ class UserServiceTest {
         // when & then
         assertThatThrownBy(() -> userService.saveProfileImageUrl(1L, "https://example.com/img.png"))
                 .isInstanceOf(UserException.class);
+    }
+
+    @DisplayName("플로깅 기록이 있는 사용자의 누적 통계를 반환한다")
+    @Test
+    void find_plogging_stats_성공() {
+        // given
+        Long userId = 1L;
+        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        PloggingStatsView stats = mockStats(3L, 12000L, 8500L);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(ploggingSessionRepository.findStatsByUserId(userId)).willReturn(stats);
+
+        // when
+        UserDto.PloggingStatsResponse result = userService.findPloggingStats(userId);
+
+        // then
+        assertThat(result.totalPloggingCount()).isEqualTo(3L);
+        assertThat(result.totalStepCount()).isEqualTo(12000L);
+        assertThat(result.totalDistanceMeters()).isEqualTo(8500L);
+    }
+
+    @DisplayName("플로깅 기록이 없는 사용자는 모든 통계가 0이다")
+    @Test
+    void find_plogging_stats_기록없음_모두_0() {
+        // given
+        Long userId = 1L;
+        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        PloggingStatsView stats = mockStats(0L, 0L, 0L);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(ploggingSessionRepository.findStatsByUserId(userId)).willReturn(stats);
+
+        // when
+        UserDto.PloggingStatsResponse result = userService.findPloggingStats(userId);
+
+        // then
+        assertThat(result.totalPloggingCount()).isZero();
+        assertThat(result.totalStepCount()).isZero();
+        assertThat(result.totalDistanceMeters()).isZero();
+    }
+
+    @DisplayName("존재하지 않는 유저의 플로깅 통계 조회 시 예외가 발생한다")
+    @Test
+    void find_plogging_stats_유저없음_예외() {
+        // given
+        given(userRepository.findById(anyLong())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> userService.findPloggingStats(1L))
+                .isInstanceOf(UserException.class);
+    }
+
+    private PloggingStatsView mockStats(long count, long totalStepCount, long totalDistanceMeters) {
+        return new PloggingStatsView() {
+            public long getCount() { return count; }
+            public long getTotalStepCount() { return totalStepCount; }
+            public long getTotalDistanceMeters() { return totalDistanceMeters; }
+        };
     }
 }
