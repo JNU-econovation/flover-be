@@ -23,6 +23,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -369,6 +371,147 @@ class PloggingServiceTest {
         assertThat(result.photoUrls().get(0)).isEqualTo("https://s3.example.com/first.jpg");
         assertThat(result.photoUrls().get(1)).isEqualTo("https://s3.example.com/second.jpg");
         assertThat(result.photoUrls().get(2)).isEqualTo("https://s3.example.com/third.jpg");
+    }
+
+    @DisplayName("월간 통계를 정상적으로 집계해 반환한다")
+    @Test
+    void find_monthly_stats_성공() {
+        // given
+        Long userId = 1L;
+        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        List<PloggingSessionRepository.SessionStatsView> sessions = List.of(
+                mockSessionStats(LocalDateTime.of(2026, 4, 10, 9, 0), 4000, 3000, 150, 1800),
+                mockSessionStats(LocalDateTime.of(2026, 4, 20, 9, 0), 5000, 4000, 200, 2400)
+        );
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(ploggingSessionRepository.findSessionStatsInPeriod(
+                anyLong(), any(LocalDateTime.class), any(LocalDateTime.class)
+        )).willReturn(sessions);
+
+        // when
+        PloggingDto.MonthlyStatsResponse result = ploggingService.findMonthlyStats(userId, 2026, 4);
+
+        // then
+        assertThat(result.year()).isEqualTo(2026);
+        assertThat(result.month()).isEqualTo(4);
+        assertThat(result.totalPloggingCount()).isEqualTo(2);
+        assertThat(result.totalStepCount()).isEqualTo(9000L);
+        assertThat(result.totalDistanceMeters()).isEqualTo(7000L);
+        assertThat(result.totalCaloriesBurned()).isEqualTo(350L);
+        assertThat(result.totalPloggingSeconds()).isEqualTo(4200L);
+    }
+
+    @DisplayName("플로깅 기록이 없는 달은 모든 통계가 0이다")
+    @Test
+    void find_monthly_stats_기록없음_모두_0() {
+        // given
+        Long userId = 1L;
+        User user = User.create(12345L, "test@test.com", "닉네임", null);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(ploggingSessionRepository.findSessionStatsInPeriod(
+                anyLong(), any(LocalDateTime.class), any(LocalDateTime.class)
+        )).willReturn(List.of());
+
+        // when
+        PloggingDto.MonthlyStatsResponse result = ploggingService.findMonthlyStats(userId, 2026, 4);
+
+        // then
+        assertThat(result.totalPloggingCount()).isZero();
+        assertThat(result.totalStepCount()).isZero();
+        assertThat(result.totalDistanceMeters()).isZero();
+        assertThat(result.totalCaloriesBurned()).isZero();
+        assertThat(result.totalPloggingSeconds()).isZero();
+    }
+
+    @DisplayName("존재하지 않는 유저로 월간 통계 조회 시 예외가 발생한다")
+    @Test
+    void find_monthly_stats_유저없음_예외() {
+        // given
+        given(userRepository.findById(anyLong())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> ploggingService.findMonthlyStats(1L, 2026, 4))
+                .isInstanceOf(UserException.class);
+    }
+
+    @DisplayName("주간 통계는 7개의 날짜 데이터를 반환한다")
+    @Test
+    void find_weekly_stats_7개_날짜_반환() {
+        // given
+        Long userId = 1L;
+        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        LocalDate startDate = LocalDate.of(2026, 4, 14);
+        List<PloggingSessionRepository.SessionStatsView> sessions = List.of(
+                mockSessionStats(LocalDateTime.of(2026, 4, 15, 9, 0), 4800, 3900, 220, 3600)
+        );
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(ploggingSessionRepository.findSessionStatsInPeriod(
+                anyLong(), any(LocalDateTime.class), any(LocalDateTime.class)
+        )).willReturn(sessions);
+
+        // when
+        PloggingDto.WeeklyStatsResponse result = ploggingService.findWeeklyStats(userId, startDate);
+
+        // then
+        assertThat(result.startDate()).isEqualTo(LocalDate.of(2026, 4, 14));
+        assertThat(result.endDate()).isEqualTo(LocalDate.of(2026, 4, 20));
+        assertThat(result.dailyStats()).hasSize(7);
+        assertThat(result.dailyStats().get(0).dayOfWeek()).isEqualTo(DayOfWeek.TUESDAY);
+    }
+
+    @DisplayName("플로깅 기록이 없는 날은 0으로 채워진다")
+    @Test
+    void find_weekly_stats_기록없는_날_0으로_채워짐() {
+        // given
+        Long userId = 1L;
+        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        LocalDate startDate = LocalDate.of(2026, 4, 14);
+        List<PloggingSessionRepository.SessionStatsView> sessions = List.of(
+                mockSessionStats(LocalDateTime.of(2026, 4, 15, 9, 0), 4800, 3900, 220, 3600)
+        );
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(ploggingSessionRepository.findSessionStatsInPeriod(
+                anyLong(), any(LocalDateTime.class), any(LocalDateTime.class)
+        )).willReturn(sessions);
+
+        // when
+        PloggingDto.WeeklyStatsResponse result = ploggingService.findWeeklyStats(userId, startDate);
+
+        // then
+        PloggingDto.DailyStatsResponse monday = result.dailyStats().get(0);   // 4/14 월요일
+        PloggingDto.DailyStatsResponse tuesday = result.dailyStats().get(1);  // 4/15 화요일
+        assertThat(monday.stepCount()).isZero();
+        assertThat(monday.ploggingCount()).isZero();
+        assertThat(tuesday.stepCount()).isEqualTo(4800L);
+        assertThat(tuesday.ploggingCount()).isEqualTo(1L);
+        assertThat(tuesday.caloriesBurned()).isEqualTo(220L);
+    }
+
+    @DisplayName("존재하지 않는 유저로 주간 통계 조회 시 예외가 발생한다")
+    @Test
+    void find_weekly_stats_유저없음_예외() {
+        // given
+        given(userRepository.findById(anyLong())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> ploggingService.findWeeklyStats(1L, LocalDate.of(2026, 4, 14)))
+                .isInstanceOf(UserException.class);
+    }
+
+    private PloggingSessionRepository.SessionStatsView mockSessionStats(
+            LocalDateTime finishedAt, int stepCount, int distanceMeters, int caloriesBurned, int ploggingSeconds
+    ) {
+        return new PloggingSessionRepository.SessionStatsView() {
+            public LocalDateTime getFinishedAt() { return finishedAt; }
+            public int getStepCount() { return stepCount; }
+            public int getDistanceMeters() { return distanceMeters; }
+            public int getCaloriesBurned() { return caloriesBurned; }
+            public int getPloggingSeconds() { return ploggingSeconds; }
+        };
     }
 
     private PloggingDto.CompleteRequest buildRequest(

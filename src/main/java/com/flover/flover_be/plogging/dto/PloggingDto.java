@@ -9,6 +9,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -67,5 +69,31 @@ public class PloggingDto {
             int restSeconds,
             String mapImageUrl,
             List<String> photoUrls
+    ) {}
+
+    public record MonthlyStatsResponse(
+            int year,
+            int month,
+            long totalStepCount,
+            long totalDistanceMeters,
+            long totalCaloriesBurned,
+            long totalPloggingCount,
+            long totalPloggingSeconds
+    ) {}
+
+    public record WeeklyStatsResponse(
+            LocalDate startDate,
+            LocalDate endDate,
+            List<DailyStatsResponse> dailyStats
+    ) {}
+
+    public record DailyStatsResponse(
+            LocalDate date,
+            DayOfWeek dayOfWeek,
+            long stepCount,
+            long distanceMeters,
+            long caloriesBurned,
+            long ploggingCount,
+            long ploggingSeconds
     ) {}
 }

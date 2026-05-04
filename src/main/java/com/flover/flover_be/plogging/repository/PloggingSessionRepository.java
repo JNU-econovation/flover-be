@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface PloggingSessionRepository extends JpaRepository<PloggingSession, Long> {
@@ -18,9 +20,20 @@ public interface PloggingSessionRepository extends JpaRepository<PloggingSession
     @Query("SELECT COUNT(p) AS count, COALESCE(SUM(p.stepCount), 0) AS totalStepCount, COALESCE(SUM(p.distanceMeters), 0) AS totalDistanceMeters FROM PloggingSession p WHERE p.user.id = :userId")
     PloggingStatsView findStatsByUserId(@Param("userId") Long userId);
 
+    @Query("SELECT p.finishedAt AS finishedAt, p.stepCount AS stepCount, p.distanceMeters AS distanceMeters, p.caloriesBurned AS caloriesBurned, p.ploggingSeconds AS ploggingSeconds FROM PloggingSession p WHERE p.user.id = :userId AND p.finishedAt >= :start AND p.finishedAt < :end")
+    List<SessionStatsView> findSessionStatsInPeriod(@Param("userId") Long userId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
     interface PloggingStatsView {
         long getCount();
         long getTotalStepCount();
         long getTotalDistanceMeters();
+    }
+
+    interface SessionStatsView {
+        LocalDateTime getFinishedAt();
+        int getStepCount();
+        int getDistanceMeters();
+        int getCaloriesBurned();
+        int getPloggingSeconds();
     }
 }
