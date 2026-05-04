@@ -298,6 +298,7 @@ class PloggingServiceTest {
         PloggingPhoto photo1 = PloggingPhoto.create(session, 0, "https://s3.example.com/photo0.jpg");
         PloggingPhoto photo2 = PloggingPhoto.create(session, 1, "https://s3.example.com/photo1.jpg");
 
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(ploggingSessionRepository.findByIdAndUserId(sessionId, userId)).willReturn(Optional.of(session));
         given(ploggingPhotoRepository.findAllByPloggingSessionIdOrderBySequenceAsc(sessionId))
                 .willReturn(List.of(photo1, photo2));
@@ -328,6 +329,8 @@ class PloggingServiceTest {
         // given
         Long userId = 1L;
         Long sessionId = 999L;
+        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(ploggingSessionRepository.findByIdAndUserId(sessionId, userId)).willReturn(Optional.empty());
 
         // when & then
@@ -353,6 +356,7 @@ class PloggingServiceTest {
         PloggingPhoto second = PloggingPhoto.create(session, 1, "https://s3.example.com/second.jpg");
         PloggingPhoto third = PloggingPhoto.create(session, 2, "https://s3.example.com/third.jpg");
 
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(ploggingSessionRepository.findByIdAndUserId(sessionId, userId)).willReturn(Optional.of(session));
         given(ploggingPhotoRepository.findAllByPloggingSessionIdOrderBySequenceAsc(sessionId))
                 .willReturn(List.of(first, second, third));

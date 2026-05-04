@@ -77,6 +77,7 @@ public class PloggingService {
 
     @Transactional(readOnly = true)
     public PloggingDto.SessionDetailResponse findSession(Long userId, Long ploggingSessionId) {
+        validateUserExists(userId);
         PloggingSession session = ploggingSessionRepository.findByIdAndUserId(ploggingSessionId, userId)
                 .orElseThrow(() -> new PloggingException(PloggingErrorCode.PLOGGING_SESSION_NOT_FOUND));
         List<String> photoUrls = ploggingPhotoRepository
