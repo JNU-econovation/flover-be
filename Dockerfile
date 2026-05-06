@@ -6,7 +6,7 @@ WORKDIR /app
 
 # 의존성 캐시 레이어 분리 (소스 변경 시 의존성 재다운로드 방지)
 COPY build.gradle settings.gradle ./
-RUN gradle dependencies --no-daemon || true
+RUN gradle dependencies --no-daemon
 
 COPY src ./src
 RUN gradle bootJar --no-daemon -x test
