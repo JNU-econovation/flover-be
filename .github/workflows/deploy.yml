@@ -30,7 +30,7 @@ jobs:
           envs: DB_USERNAME,DB_PASSWORD,KAKAO_CLIENT_ID,KAKAO_CLIENT_SECRET,KAKAO_REDIRECT_URI,JWT_SECRET,JWT_EXPIRATION,AWS_REGION,AWS_S3_BUCKET,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
           script: |
             cd ~/flover-be
-            git pull origin main
+            git pull origin develop
 
             cat > .env <<EOF
             DB_URL=jdbc:mysql://mysql:3306/flover_db
