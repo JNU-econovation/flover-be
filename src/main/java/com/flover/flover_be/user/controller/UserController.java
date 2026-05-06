@@ -24,7 +24,7 @@ public class UserController {
 
     private final UserService userService;
 
-    @Operation(summary = "내 정보 조회", description = "닉네임, 레벨, 프로필 이미지 URL 반환")
+    @Operation(summary = "내 정보 조회", description = "닉네임, 레벨, 칭호, 프로필 이미지 URL 반환")
     @GetMapping("/me")
     public ResponseEntity<UserDto.UserInfoResponse> getMyInfo(@LoginUserId Long userId) {
         return ResponseEntity.ok(userService.findUserInfo(userId));
