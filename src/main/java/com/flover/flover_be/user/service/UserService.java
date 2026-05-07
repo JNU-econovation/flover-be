@@ -22,7 +22,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserDto.UserInfoResponse findUserInfo(Long userId) {
         User user = getUserOrThrow(userId);
-        return new UserDto.UserInfoResponse(user.getNickname(), user.getLevel(), user.getTitle().getDisplayName(), user.getProfileImageUrl());
+        return new UserDto.UserInfoResponse(user.getNickname(), user.getLevel(), user.getTitle().getDisplayName(), user.getProfileImageUrl(), user.getExperience());
     }
 
     @Transactional
