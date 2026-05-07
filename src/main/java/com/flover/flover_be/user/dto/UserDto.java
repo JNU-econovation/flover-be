@@ -12,7 +12,7 @@ public class UserDto {
 
     public record ProfileImageUrlRequest(@NotBlank String imageUrl) {}
 
-    public record UserInfoResponse(String nickname, int level, String title, String profileImageUrl) {}
+    public record UserInfoResponse(String nickname, int level, String title, String profileImageUrl, long experience) {}
 
     public record PloggingStatsResponse(
             long totalPloggingCount,
