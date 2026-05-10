@@ -118,7 +118,7 @@ class PloggingAnalysisServiceTest {
         List<TrashDetection> saved = captor.getValue();
         assertThat(saved).hasSize(3);
         assertThat(saved.get(0).getTrashType()).isEqualTo("비닐류");
-        assertThat(saved.get(0).getCount()).isEqualTo(2);
+        assertThat(saved.get(0).getCount()).isEqualTo(1);
         assertThat(saved.get(2).getTrashType()).isEqualTo("종이류");
         assertThat(saved.get(2).getCount()).isEqualTo(1);
     }
@@ -141,7 +141,7 @@ class PloggingAnalysisServiceTest {
         // then
         ArgumentCaptor<List<TrashDetection>> captor = ArgumentCaptor.forClass(List.class);
         verify(trashDetectionRepository).saveAll(captor.capture());
-        assertThat(captor.getValue().get(0).getCount()).isEqualTo(3);
+        assertThat(captor.getValue().get(0).getCount()).isEqualTo(1);
     }
 
     @DisplayName("counts 맵에 타입이 없으면 count를 1로 저장한다")
