@@ -82,11 +82,17 @@ public class PloggingAnalysisService {
 
     private void saveDetections(AiResponseDto response, Double latitude, Double longitude) {
         Map<String, Integer> counts = response.counts();
-        List<TrashDetection> detections = new ArrayList<>();
-        for (AiResponseDto.Detection detection : response.detections()) {
-            int count = counts.getOrDefault(detection.type(), 1);
-            detections.add(TrashDetection.create(latitude, longitude, detection.type(), count, detection.confidence()));
-        }
+
+        List<TrashDetection> detections = response.detections().stream()
+                .map(detection -> TrashDetection.create(
+                        latitude,
+                        longitude,
+                        detection.type(),
+                        1,
+                        detection.confidence()
+                ))
+                .toList();
+
         trashDetectionRepository.saveAll(detections);
         log.info("쓰레기 감지 결과 저장 완료: {}건", detections.size());
     }
