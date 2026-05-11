@@ -51,6 +51,7 @@ class UserServiceTest {
         assertThat(result.level()).isEqualTo(1);
         assertThat(result.title()).isEqualTo("쓰봉이");
         assertThat(result.profileImageUrl()).isEqualTo("https://img.url/profile.png");
+        assertThat(result.experience()).isEqualTo(0L);
     }
 
     @DisplayName("존재하지 않는 유저 정보 조회 시 예외가 발생한다")
