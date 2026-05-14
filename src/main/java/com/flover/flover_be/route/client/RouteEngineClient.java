@@ -22,10 +22,7 @@ public class RouteEngineClient {
 
     private final RestClient restClient;
 
-    public RouteEngineClient(
-            @Value("${route.engine.url}") String routeEngineUrl,
-            RestClient.Builder restClientBuilder) {
-
+    public RouteEngineClient(@Value("${route.engine.url}") String routeEngineUrl) {
         HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
@@ -33,7 +30,7 @@ public class RouteEngineClient {
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofSeconds(15));
 
-        this.restClient = restClientBuilder
+        this.restClient = RestClient.builder()
                 .baseUrl(routeEngineUrl)
                 .requestFactory(requestFactory)
                 .build();
