@@ -1,15 +1,21 @@
 package com.flover.flover_be.route.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 public class RouteDto {
     public record Request(
-            double lat,
-            double lon,
-            @Positive int distance,
-            @NotBlank String mode
-    ) {}
+            @NotNull Double lat,
+            @NotNull Double lon,
+            @NotNull @Positive Integer time,
+            String mode
+    ) {
+        public Request {
+            if (mode == null || mode.isBlank()) {
+                mode = "PLOGGING";
+            }
+        }
+    }
 
     public record Response(
             double distanceMeter,
