@@ -26,6 +26,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AI_SERVER_URL: ${{ secrets.AI_SERVER_URL }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          ROUTE_ENGINE_URL: ${{ secrets.ROUTE_ENGINE_URL }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
@@ -35,7 +36,7 @@ jobs:
                      KAKAO_CLIENT_ID KAKAO_CLIENT_SECRET KAKAO_REDIRECT_URI \
                      JWT_SECRET JWT_EXPIRATION \
                      AWS_REGION AWS_S3_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY \
-                     AI_SERVER_URL AI_API_KEY \
+                     AI_SERVER_URL AI_API_KEY ROUTE_ENGINE_URL \
                      EC2_HOST EC2_USER EC2_SSH_KEY; do
             if [ -z "${!VAR}" ]; then
               MISSING+=("$VAR")
@@ -87,12 +88,13 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AI_SERVER_URL: ${{ secrets.AI_SERVER_URL }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          ROUTE_ENGINE_URL: ${{ secrets.ROUTE_ENGINE_URL }}
           APP_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/flover-be:latest
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: DB_USERNAME,DB_PASSWORD,KAKAO_CLIENT_ID,KAKAO_CLIENT_SECRET,KAKAO_REDIRECT_URI,JWT_SECRET,JWT_EXPIRATION,AWS_REGION,AWS_S3_BUCKET,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AI_SERVER_URL,AI_API_KEY,APP_IMAGE
+          envs: DB_USERNAME,DB_PASSWORD,KAKAO_CLIENT_ID,KAKAO_CLIENT_SECRET,KAKAO_REDIRECT_URI,JWT_SECRET,JWT_EXPIRATION,AWS_REGION,AWS_S3_BUCKET,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AI_SERVER_URL,AI_API_KEY,ROUTE_ENGINE_URL,APP_IMAGE
           script: |
             cd ~/flover-be
             git pull origin develop
@@ -112,6 +114,7 @@ jobs:
             AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
             AI_SERVER_URL=${AI_SERVER_URL}
             AI_API_KEY=${AI_API_KEY}
+            ROUTE_ENGINE_URL=${ROUTE_ENGINE_URL}
             APP_IMAGE=${APP_IMAGE}
             EOF
 
