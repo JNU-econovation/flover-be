@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>기술 스택 — flover-be</title>
+  <style>
+    :root {
+      --bg: #0d1117; --surface: #161b22; --border: #30363d;
+      --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+      --green: #3fb950; --yellow: #d29922; --red: #f85149;
+      --code-bg: #1f2937; --tag-bg: #1c2a3e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Noto Sans KR, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; padding: 2rem 1rem; }
+    .container { max-width: 860px; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+    header h1 { font-size: 1.8rem; color: var(--accent); }
+    header p { color: var(--muted); font-size: 0.9rem; margin-top: 0.3rem; }
+    nav { margin-bottom: 2rem; }
+    nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; margin-right: 1rem; }
+    nav a:hover { color: var(--accent); }
+    h2 { font-size: 1.2rem; color: var(--accent); border-left: 3px solid var(--accent); padding-left: 0.75rem; margin: 2rem 0 1rem; }
+    ul { padding-left: 1.5rem; }
+    li { margin: 0.35rem 0; }
+    code { background: var(--code-bg); color: #79c0ff; padding: 0.15em 0.45em; border-radius: 4px; font-family: "JetBrains Mono", Consolas, monospace; font-size: 0.88em; }
+    .badge { display: inline-block; background: var(--tag-bg); border: 1px solid var(--border); border-radius: 20px; padding: 0.25em 0.75em; font-size: 0.8rem; color: var(--accent); margin: 0.25rem 0.2rem; }
+    .section { margin-bottom: 2.5rem; }
+    .warn { background: #1a1a0e; border-left: 3px solid var(--yellow); padding: 0.75rem 1rem; border-radius: 0 6px 6px 0; margin-top: 1rem; }
+    .warn li { color: #e3b341; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav>
+      <a href="index.html">← 목록으로</a>
+      <a href="claude_md.html">CLAUDE.md</a>
+      <a href="code_convention.html">코드 컨벤션</a>
+      <a href="workflow.html">워크플로우</a>
+      <a href="test_convention.html">테스트 컨벤션</a>
+    </nav>
+    <header>
+      <h1>기술 스택</h1>
+      <p>flover-be 프로젝트에서 사용하는 기술 스택 및 주의사항</p>
+    </header>
+    <div class="section">
+      <h2>Core</h2>
+      <span class="badge">Java 21</span>
+      <span class="badge">Spring Boot 4.0.5</span>
+      <span class="badge">Spring Data JPA</span>
+      <span class="badge">Spring Web MVC</span>
+      <span class="badge">MySQL</span>
+      <span class="badge">Lombok</span>
+      <span class="badge">Gradle (Groovy DSL)</span>
+      <span class="badge">AWS SDK v2</span>
+      <ul style="margin-top:1rem;">
+        <li><code>software.amazon.awssdk:s3</code> — S3 파일 저장, Presigned URL 발급</li>
+      </ul>
+    </div>
+    <div class="section">
+      <h2>테스트</h2>
+      <span class="badge">JUnit 5</span>
+      <span class="badge">AssertJ</span>
+      <span class="badge">Mockito</span>
+      <span class="badge">Spring Boot Test</span>
+    </div>
+    <div class="section">
+      <h2>주의 사항</h2>
+      <div class="warn">
+        <ul>
+          <li><code>javax</code> 패키지 대신 <code>jakarta</code> 패키지를 사용한다.</li>
+          <li><code>@Autowired</code> 필드 주입을 사용하지 않는다. 생성자 주입만 사용한다. (Lombok <code>@RequiredArgsConstructor</code> 활용)</li>
+          <li>프로젝트에 없는 외부 라이브러리(QueryDSL, MapStruct, Security 등)는 임의로 추가하지 않는다.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLAUDE.md — AI 코딩 가이드라인</title>
+  <style>
+    :root {
+      --bg: #0d1117; --surface: #161b22; --border: #30363d;
+      --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+      --green: #3fb950; --yellow: #d29922; --red: #f85149;
+      --purple: #bc8cff; --code-bg: #1f2937;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Noto Sans KR, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.75; padding: 2rem 1rem;
+    }
+    .container { max-width: 860px; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+    header h1 { font-size: 1.8rem; color: var(--accent); }
+    header p { color: var(--muted); font-size: 0.9rem; margin-top: 0.3rem; }
+    nav { margin-bottom: 2rem; }
+    nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; margin-right: 1rem; }
+    nav a:hover { color: var(--accent); }
+    h2 { font-size: 1.2rem; color: var(--accent); border-left: 3px solid var(--accent); padding-left: 0.75rem; margin: 2.5rem 0 1rem; }
+    p { margin: 0.6rem 0; }
+    code { background: var(--code-bg); color: #79c0ff; padding: 0.15em 0.45em; border-radius: 4px; font-family: "JetBrains Mono", Consolas, monospace; font-size: 0.88em; }
+    .rule-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1.5rem; margin-bottom: 1.25rem;
+    }
+    .rule-card .num {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--accent); color: #0d1117; font-weight: 700;
+      width: 1.8rem; height: 1.8rem; border-radius: 50%; font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+    }
+    .rule-card h3 { font-size: 1.05rem; color: var(--text); margin-bottom: 0.5rem; }
+    .rule-card .subtitle { font-size: 0.85rem; color: var(--purple); margin-bottom: 0.75rem; font-style: italic; }
+    .checklist { list-style: none; padding: 0; }
+    .checklist li {
+      padding: 0.35rem 0 0.35rem 1.5rem;
+      position: relative; font-size: 0.9rem; color: var(--text);
+      border-bottom: 1px solid #1e2530;
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before { content: "→"; position: absolute; left: 0; color: var(--green); font-size: 0.8rem; top: 0.4rem; }
+    .example-block {
+      background: var(--code-bg); border-left: 3px solid var(--yellow);
+      border-radius: 0 6px 6px 0; padding: 0.75rem 1rem; margin-top: 0.75rem; font-size: 0.85rem;
+    }
+    .example-block .label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .arrow-item { display: flex; align-items: flex-start; gap: 0.5rem; margin: 0.3rem 0; font-size: 0.88rem; }
+    .arrow-item .from { color: var(--muted); }
+    .arrow-item .arr { color: var(--yellow); flex-shrink: 0; }
+    .arrow-item .to { color: var(--green); }
+    .step-list { counter-reset: step; list-style: none; padding: 0; margin-top: 0.5rem; }
+    .step-list li { counter-increment: step; display: flex; gap: 0.75rem; align-items: flex-start; margin: 0.4rem 0; font-size: 0.88rem; }
+    .step-list li::before { content: counter(step) "."; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+    .tradeoff { background: #0e1a0e; border: 1px solid #2d4a2d; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 2rem; font-size: 0.88rem; color: #7ee787; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav>
+      <a href="index.html">← 목록으로</a>
+      <a href="skills.html">기술 스택</a>
+      <a href="code_convention.html">코드 컨벤션</a>
+      <a href="workflow.html">워크플로우</a>
+      <a href="test_convention.html">테스트 컨벤션</a>
+    </nav>
+
+    <header>
+      <h1>CLAUDE.md</h1>
+      <p>AI 코딩 실수를 줄이기 위한 행동 가이드라인</p>
+    </header>
+
+    <div class="tradeoff">
+      Tradeoff: 이 가이드라인은 속도보다 신중함을 우선합니다. 사소한 작업은 판단에 맡깁니다.
+    </div>
+
+    <!-- Rule 1 -->
+    <div class="rule-card">
+      <div class="num">1</div>
+      <h3>Think Before Coding</h3>
+      <div class="subtitle">가정하지 말 것. 혼란을 숨기지 말 것. 트레이드오프를 드러낼 것.</div>
+      <p style="font-size:0.85rem; color:var(--muted); margin-bottom:0.75rem;">구현 전 반드시:</p>
+      <ul class="checklist">
+        <li>가정을 명시적으로 밝힌다. 불확실하면 질문한다.</li>
+        <li>여러 해석이 가능하면 모두 제시한다 — 혼자 선택하지 않는다.</li>
+        <li>더 단순한 방법이 있으면 말한다. 필요하면 반론을 제기한다.</li>
+        <li>불명확한 게 있으면 멈춘다. 무엇이 혼란스러운지 명시하고 질문한다.</li>
+      </ul>
+    </div>
+
+    <!-- Rule 2 -->
+    <div class="rule-card">
+      <div class="num">2</div>
+      <h3>Simplicity First</h3>
+      <div class="subtitle">문제를 해결하는 최소한의 코드. 추측성 코드는 없다.</div>
+      <ul class="checklist">
+        <li>요청받은 것 이상의 기능을 추가하지 않는다.</li>
+        <li>한 번만 쓰는 코드에 추상화를 만들지 않는다.</li>
+        <li>요청받지 않은 "유연성"이나 "설정 가능성"을 넣지 않는다.</li>
+        <li>불가능한 시나리오에 대한 에러 핸들링을 넣지 않는다.</li>
+        <li>200줄로 짰는데 50줄로 될 것 같으면 다시 짠다.</li>
+      </ul>
+      <div class="example-block">
+        <div class="label">자가진단</div>
+        "시니어 엔지니어가 봤을 때 이게 과하게 복잡해 보일까?" → 그렇다면 단순화한다.
+      </div>
+    </div>
+
+    <!-- Rule 3 -->
+    <div class="rule-card">
+      <div class="num">3</div>
+      <h3>Surgical Changes</h3>
+      <div class="subtitle">반드시 건드려야 하는 것만 건드린다. 자신이 만든 mess만 정리한다.</div>
+      <p style="font-size:0.85rem; color:var(--muted); margin-bottom:0.5rem;">기존 코드 수정 시:</p>
+      <ul class="checklist">
+        <li>인접 코드, 주석, 포매팅을 "개선"하지 않는다.</li>
+        <li>고장나지 않은 것을 리팩토링하지 않는다.</li>
+        <li>다르게 하고 싶더라도 기존 스타일에 맞춘다.</li>
+        <li>관련 없는 죽은 코드를 발견하면 알리되 삭제하지 않는다.</li>
+      </ul>
+      <p style="font-size:0.85rem; color:var(--muted); margin: 0.75rem 0 0.5rem;">변경으로 인해 고아가 된 코드:</p>
+      <ul class="checklist">
+        <li><strong style="color:var(--green)">내 변경이 만든</strong> 미사용 import/변수/함수는 제거한다.</li>
+        <li>기존에 있던 죽은 코드는 요청받지 않는 한 건드리지 않는다.</li>
+      </ul>
+      <div class="example-block">
+        <div class="label">판단 기준</div>
+        변경된 모든 줄이 사용자의 요청에 직접 연결되어야 한다.
+      </div>
+    </div>
+
+    <!-- Rule 4 -->
+    <div class="rule-card">
+      <div class="num">4</div>
+      <h3>Goal-Driven Execution</h3>
+      <div class="subtitle">성공 기준을 정의한다. 검증될 때까지 반복한다.</div>
+      <p style="font-size:0.85rem; color:var(--muted); margin-bottom:0.5rem;">작업을 검증 가능한 목표로 변환:</p>
+      <div class="example-block">
+        <div class="label">변환 예시</div>
+        <div class="arrow-item">
+          <span class="from">"검증 추가"</span>
+          <span class="arr">→</span>
+          <span class="to">"잘못된 입력 테스트 작성 후 통과시키기"</span>
+        </div>
+        <div class="arrow-item">
+          <span class="from">"버그 수정"</span>
+          <span class="arr">→</span>
+          <span class="to">"재현 테스트 작성 후 통과시키기"</span>
+        </div>
+        <div class="arrow-item">
+          <span class="from">"X 리팩토링"</span>
+          <span class="arr">→</span>
+          <span class="to">"전후 테스트 통과 보장"</span>
+        </div>
+      </div>
+      <p style="font-size:0.85rem; color:var(--muted); margin: 0.75rem 0 0.5rem;">다단계 작업 시 간략한 계획 제시:</p>
+      <ol class="step-list">
+        <li><span>[단계] → 검증: [확인 방법]</span></li>
+        <li><span>[단계] → 검증: [확인 방법]</span></li>
+        <li><span>[단계] → 검증: [확인 방법]</span></li>
+      </ol>
+    </div>
+
+    <div style="margin-top:2rem; padding:1rem; border:1px solid var(--border); border-radius:8px; font-size:0.85rem; color:var(--muted);">
+      이 가이드라인이 잘 작동하는 신호: diff에서 불필요한 변경 감소 · 과복잡으로 인한 재작성 감소 · 실수 후가 아닌 구현 전에 명확화 질문이 나오는 것.
+    </div>
+  </div>
+</body>
+</html>
