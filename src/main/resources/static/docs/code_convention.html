@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>코드 컨벤션 — flover-be</title>
+  <style>
+    :root {
+      --bg: #0d1117; --surface: #161b22; --border: #30363d;
+      --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+      --green: #3fb950; --yellow: #d29922; --red: #f85149; --purple: #bc8cff;
+      --code-bg: #1f2937; --tag-bg: #1c2a3e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Noto Sans KR, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; padding: 2rem 1rem; }
+    .container { max-width: 900px; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+    header h1 { font-size: 1.8rem; color: var(--accent); }
+    header p { color: var(--muted); font-size: 0.9rem; margin-top: 0.3rem; }
+    nav { margin-bottom: 2rem; }
+    nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; margin-right: 1rem; }
+    nav a:hover { color: var(--accent); }
+    h2 { font-size: 1.2rem; color: var(--accent); border-left: 3px solid var(--accent); padding-left: 0.75rem; margin: 2.5rem 0 1rem; }
+    h3 { font-size: 1rem; color: var(--purple); margin: 1.25rem 0 0.6rem; }
+    ul, ol { padding-left: 1.5rem; }
+    li { margin: 0.4rem 0; }
+    code { background: var(--code-bg); color: #79c0ff; padding: 0.15em 0.45em; border-radius: 4px; font-family: "JetBrains Mono", "Fira Code", Consolas, monospace; font-size: 0.88em; }
+    strong { color: #ffa657; }
+    pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; overflow-x: auto; margin: 0.75rem 0; font-family: "JetBrains Mono", "Fira Code", Consolas, monospace; font-size: 0.85rem; line-height: 1.6; color: #c9d1d9; }
+    pre .kw { color: #ff7b72; } pre .str { color: #a5d6ff; } pre .cmt { color: #8b949e; font-style: italic; } pre .ann { color: #d2a8ff; } pre .cls { color: #ffa657; }
+    .section { margin-bottom: 2rem; }
+    .warn { background: #1a0e0e; border-left: 3px solid var(--red); padding: 0.75rem 1rem; border-radius: 0 6px 6px 0; margin-top: 0.75rem; }
+    .warn li { color: #ffa198; }
+    .warn code { background: #2a1515; color: #ff9492; }
+    .tree { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; font-family: "JetBrains Mono", "Fira Code", Consolas, monospace; font-size: 0.85rem; color: #c9d1d9; white-space: pre; overflow-x: auto; }
+    .rule-list { list-style: none; padding: 0; }
+    .rule-list li { padding: 0.5rem 1rem; border-left: 2px solid var(--border); margin-bottom: 0.4rem; }
+    .flow-steps { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin: 0.75rem 0; }
+    .flow-step { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.4em 0.9em; font-size: 0.85rem; font-family: "JetBrains Mono", Consolas, monospace; color: var(--green); }
+    .flow-arrow { color: var(--muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav>
+      <a href="index.html">← 목록으로</a>
+      <a href="claude_md.html">CLAUDE.md</a>
+      <a href="skills.html">기술 스택</a>
+      <a href="workflow.html">워크플로우</a>
+      <a href="test_convention.html">테스트 컨벤션</a>
+    </nav>
+    <header>
+      <h1>코드 컨벤션</h1>
+      <p>패키지 구조, DTO, Entity, 예외 처리, JPQL 집계 패턴, 안티패턴</p>
+    </header>
+
+    <div class="section">
+      <h2>패키지 구조</h2>
+      <ul class="rule-list">
+        <li>도메인 기반 패키지 구조를 사용한다.</li>
+        <li>루트 패키지: <code>com.flover.flover_be</code></li>
+        <li>각 도메인 하위에 <code>controller</code> / <code>service</code> / <code>repository</code> / <code>domain</code> / <code>dto</code> 패키지를 둔다.</li>
+      </ul>
+      <div class="tree" style="margin-top:0.75rem;">com.flover.flover_be
+├── user/
+│   ├── controller/
+│   ├── service/
+│   ├── repository/
+│   ├── domain/    ← Entity 클래스
+│   ├── exception/ ← 도메인 ErrorCode enum, 도메인 Exception 클래스
+│   └── dto/
+├── order/
+│   ├── controller/
+│   ├── service/
+│   ├── repository/
+│   ├── domain/
+│   ├── exception/
+│   └── dto/
+└── global/
+    ├── exception/ ← ErrorCode(interface), CommonErrorCode, BusinessException, GlobalExceptionHandler
+    └── response/</div>
+    </div>
+
+    <div class="section">
+      <h2>DTO</h2>
+      <ul class="rule-list">
+        <li>Request/Response DTO는 Java <strong>Record</strong>로 작성한다.</li>
+        <li>DTO에 Jakarta Validation 어노테이션을 직접 선언한다.</li>
+        <li>요청과 응답 DTO를 분리한다.</li>
+        <li>Inner class 패턴으로 관련 DTO를 그룹핑한다.</li>
+      </ul>
+      <pre><span class="kw">public class</span> <span class="cls">UserDto</span> {
+    <span class="kw">public record</span> <span class="cls">Request</span>(<span class="ann">@NotBlank</span> String name, <span class="ann">@Email</span> String email) {}
+    <span class="kw">public record</span> <span class="cls">Response</span>(Long id, String name, String email) {}
+}</pre>
+    </div>
+
+    <div class="section">
+      <h2>Entity</h2>
+      <ul class="rule-list">
+        <li><code>@NoArgsConstructor(access = AccessLevel.PROTECTED)</code>를 사용한다.</li>
+        <li>생성자는 정적 팩토리 메서드(<code>of</code>, <code>create</code>)로 대체한다.</li>
+        <li>엔티티를 API 응답으로 직접 노출하지 않는다.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>빌더 패턴</h2>
+      <ul class="rule-list">
+        <li>필드가 많거나 생성자가 복잡한 경우 빌더 패턴 사용을 고려한다.</li>
+        <li>가독성과 유지보수를 위해 의미 있는 필드만 선택적으로 설정할 수 있도록 한다.</li>
+        <li>DTO 또는 테스트 객체 생성 시 적극적으로 활용한다.</li>
+        <li>엔티티의 생성 규칙을 우회하는 무분별한 빌더 사용은 지양한다.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>예외 처리</h2>
+      <ul class="rule-list">
+        <li><code>ErrorCode</code>는 <code>global/exception/</code>에 <strong>인터페이스</strong>로 선언한다.</li>
+        <li>도메인 공통 에러: <code>global/exception/CommonErrorCode</code></li>
+        <li>도메인별 에러: <code>{domain}/exception/{Domain}ErrorCode</code></li>
+        <li>도메인별 커스텀 예외는 <code>BusinessException</code>을 상속하며 <code>ErrorCode</code>를 인자로 받는다.</li>
+        <li><code>GlobalExceptionHandler</code>(<code>@RestControllerAdvice</code>)에서 모든 예외를 공통 처리한다.</li>
+        <li>에러 응답은 <code>ErrorResponse</code> DTO로 통일한다.</li>
+      </ul>
+      <pre><span class="cmt">// global: ErrorCode 인터페이스</span>
+<span class="kw">public interface</span> <span class="cls">ErrorCode</span> {
+    HttpStatus getStatus();
+    String getMessage();
+}
+
+<span class="cmt">// global: 서버 공통 에러</span>
+<span class="kw">public enum</span> <span class="cls">CommonErrorCode</span> <span class="kw">implements</span> <span class="cls">ErrorCode</span> {
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, <span class="str">"서버 내부 오류가 발생했습니다."</span>);
+}
+
+<span class="cmt">// user: 도메인 에러코드</span>
+<span class="kw">public enum</span> <span class="cls">AuthErrorCode</span> <span class="kw">implements</span> <span class="cls">ErrorCode</span> {
+    KAKAO_TOKEN_FAILED(HttpStatus.UNAUTHORIZED, <span class="str">"카카오 토큰 발급에 실패했습니다."</span>);
+}
+
+<span class="cmt">// user: 도메인 예외는 ErrorCode를 받아 부모에게 위임</span>
+<span class="kw">public class</span> <span class="cls">KakaoAuthException</span> <span class="kw">extends</span> <span class="cls">BusinessException</span> {
+    <span class="kw">public</span> KakaoAuthException(ErrorCode errorCode) { <span class="kw">super</span>(errorCode); }
+}</pre>
+    </div>
+
+    <div class="section">
+      <h2>네이밍</h2>
+      <ul class="rule-list">
+        <li>서비스 메서드: 동사 + 목적어 (예: <code>createUser</code>, <code>findUserById</code>)</li>
+        <li>Boolean 반환 메서드: <code>is</code> / <code>has</code> / <code>can</code> 접두사 사용</li>
+        <li>컬렉션 반환: 복수형 사용 (예: <code>findActiveUsers</code>)</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>환경변수 관리</h2>
+      <ul class="rule-list">
+        <li>DB 비밀번호, JWT secret, OAuth 키 등 민감한 설정값은 <code>.env</code> 파일에 관리한다.</li>
+        <li><code>application.properties</code>에서 <code>${VAR_NAME}</code> 형식으로 참조한다.</li>
+        <li><code>.env</code>는 <code>.gitignore</code>에 추가한다.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>API 응답 형식</h2>
+      <ul class="rule-list">
+        <li>성공 응답은 Controller에서 데이터를 직접 반환한다. (<code>ResponseEntity&lt;T&gt;</code> 또는 <code>T</code>)</li>
+        <li>공통 래퍼(<code>ApiResponse&lt;T&gt;</code>)를 사용하지 않는다.</li>
+        <li>에러 응답만 <code>ErrorResponse</code> DTO로 통일한다.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>S3 파일 업로드 패턴</h2>
+      <ul class="rule-list">
+        <li>파일 업로드는 <strong>Presigned URL</strong> 방식을 사용한다. 서버가 파일을 직접 받지 않는다.</li>
+      </ul>
+      <div class="flow-steps">
+        <span class="flow-step">① GET /upload-url</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">② S3 직접 PUT</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">③ PUT /profile-image</span>
+      </div>
+      <ul class="rule-list">
+        <li>Presigned URL 유효 시간은 <strong>10분</strong>으로 설정한다.</li>
+        <li>허용 Content-Type은 서버에서 검증하며, Presigned URL 서명 시에도 Content-Type을 고정한다.</li>
+        <li><code>S3Client</code>와 <code>S3Presigner</code> 모두 <code>AwsCredentialsProvider</code> Bean을 공유한다.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>import 규칙</h2>
+      <ul class="rule-list">
+        <li>와일드카드 import(<code>import org.springframework.web.bind.annotation.*</code>)를 사용하지 않는다.</li>
+        <li>항상 사용하는 클래스를 개별로 명시한다.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>JPQL 집계 쿼리 패턴</h2>
+      <ul class="rule-list">
+        <li>여러 집계값을 조회할 때 단일 JPQL 쿼리로 한 번에 가져온다.</li>
+        <li>결과는 <strong>인터페이스 기반 프로젝션</strong>으로 받는다. 엔티티 전체를 로드하지 않는다.</li>
+        <li>프로젝션 인터페이스는 Repository 인터페이스 내부에 중첩 인터페이스로 선언한다.</li>
+        <li><code>SUM</code> 집계는 <code>COALESCE</code>로 null 대신 0 처리한다.</li>
+      </ul>
+      <pre><span class="ann">@Query</span>(<span class="str">"SELECT COUNT(p) AS count, COALESCE(SUM(p.stepCount), 0) AS totalStepCount, "</span>
+     + <span class="str">"COALESCE(SUM(p.distanceMeters), 0) AS totalDistanceMeters "</span>
+     + <span class="str">"FROM PloggingSession p WHERE p.user.id = :userId"</span>)
+PloggingStatsView findStatsByUserId(<span class="ann">@Param</span>(<span class="str">"userId"</span>) Long userId);
+
+<span class="kw">interface</span> <span class="cls">PloggingStatsView</span> {
+    <span class="kw">long</span> getCount();
+    <span class="kw">long</span> getTotalStepCount();
+    <span class="kw">long</span> getTotalDistanceMeters();
+}</pre>
+    </div>
+
+    <div class="section">
+      <h2>서비스 내 다중 필드 집계 패턴</h2>
+      <ul class="rule-list">
+        <li>컬렉션에서 여러 필드를 합산할 때 필드마다 스트림을 별도로 순회하지 않는다.</li>
+        <li><code>private record</code>를 서비스 내부에 선언하고 <code>from</code>으로 단일 루프에서 집계한다.</li>
+      </ul>
+      <pre><span class="kw">private record</span> <span class="cls">SessionAggregate</span>(<span class="kw">long</span> stepCount, <span class="kw">long</span> distanceMeters, <span class="kw">long</span> caloriesBurned, <span class="kw">long</span> ploggingSeconds) {
+    <span class="kw">static</span> SessionAggregate from(List&lt;SessionStatsView&gt; sessions) {
+        <span class="kw">long</span> stepCount = 0, distanceMeters = 0, caloriesBurned = 0, ploggingSeconds = 0;
+        <span class="kw">for</span> (SessionStatsView s : sessions) {
+            stepCount += s.getStepCount();
+            distanceMeters += s.getDistanceMeters();
+            caloriesBurned += s.getCaloriesBurned();
+            ploggingSeconds += s.getPloggingSeconds();
+        }
+        <span class="kw">return new</span> SessionAggregate(stepCount, distanceMeters, caloriesBurned, ploggingSeconds);
+    }
+}</pre>
+    </div>
+
+    <div class="section">
+      <h2>안티패턴 금지</h2>
+      <div class="warn">
+        <ul>
+          <li>Controller에서 Repository를 직접 호출하지 않는다.</li>
+          <li><code>@Autowired</code> 필드 주입을 사용하지 않는다.</li>
+          <li><code>Optional</code>을 필드나 메서드 파라미터 타입으로 사용하지 않는다.</li>
+          <li>엔티티를 Controller 반환값으로 직접 사용하지 않는다.</li>
+          <li>엔티티에 public setter를 사용하지 않는다.</li>
+          <li>상태 변경은 의미 있는 도메인 메서드를 통해 수행한다. (예: <code>changePassword</code>)</li>
+          <li>표준 Java 예외(<code>IllegalArgumentException</code> 등)를 도메인 로직에서 직접 던지지 않는다. 커스텀 <code>BusinessException</code> 서브클래스를 사용한다.</li>
+          <li>동일한 컬렉션을 필드별로 여러 번 순회해 집계하지 않는다.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

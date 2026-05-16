@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>개발 워크플로우 — flover-be</title>
+  <style>
+    :root {
+      --bg: #0d1117; --surface: #161b22; --border: #30363d;
+      --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+      --green: #3fb950; --yellow: #d29922; --code-bg: #1f2937; --tag-bg: #1c2a3e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Noto Sans KR, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; padding: 2rem 1rem; }
+    .container { max-width: 860px; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+    header h1 { font-size: 1.8rem; color: var(--accent); }
+    header p { color: var(--muted); font-size: 0.9rem; margin-top: 0.3rem; }
+    nav { margin-bottom: 2rem; }
+    nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; margin-right: 1rem; }
+    nav a:hover { color: var(--accent); }
+    h2 { font-size: 1.2rem; color: var(--accent); border-left: 3px solid var(--accent); padding-left: 0.75rem; margin: 2rem 0 1rem; }
+    code { background: var(--code-bg); color: #79c0ff; padding: 0.15em 0.45em; border-radius: 4px; font-family: "JetBrains Mono", Consolas, monospace; font-size: 0.88em; }
+    .section { margin-bottom: 2.5rem; }
+    .step-list { list-style: none; padding: 0; counter-reset: step; }
+    .step-list li { counter-increment: step; display: flex; align-items: flex-start; gap: 1rem; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.5rem; background: var(--surface); }
+    .step-list li::before { content: counter(step); background: var(--accent); color: #0d1117; font-weight: 700; font-size: 0.8rem; min-width: 1.6rem; height: 1.6rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 0.1rem; }
+    .rule-list { list-style: none; padding: 0; }
+    .rule-list li { padding: 0.6rem 1rem; border-left: 2px solid var(--border); margin-bottom: 0.5rem; }
+    .example-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; margin-top: 0.75rem; }
+    .example-box .label { font-size: 0.75rem; color: var(--muted); display: block; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .example-box code { background: none; padding: 0; font-size: 0.9rem; color: var(--green); }
+    .prefix-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+    .prefix-tag { background: var(--tag-bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.3em 0.8em; font-family: "JetBrains Mono", Consolas, monospace; font-size: 0.85rem; color: var(--green); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav>
+      <a href="index.html">← 목록으로</a>
+      <a href="claude_md.html">CLAUDE.md</a>
+      <a href="skills.html">기술 스택</a>
+      <a href="code_convention.html">코드 컨벤션</a>
+      <a href="test_convention.html">테스트 컨벤션</a>
+    </nav>
+    <header>
+      <h1>개발 워크플로우</h1>
+      <p>브랜치 전략, 커밋 메시지, PR 규칙 등 개발 프로세스 가이드</p>
+    </header>
+    <div class="section">
+      <h2>기능 개발 순서</h2>
+      <ol class="step-list">
+        <li>Domain Entity 정의 <code>domain/</code></li>
+        <li>Repository 인터페이스 작성 <code>repository/</code></li>
+        <li>Service 레이어 구현 <code>service/</code></li>
+        <li>DTO 작성 <code>dto/</code> — Record 사용</li>
+        <li>Controller 구현 <code>controller/</code></li>
+        <li>테스트 코드 작성 (단위 테스트 → 통합 테스트)</li>
+      </ol>
+    </div>
+    <div class="section">
+      <h2>브랜치 전략</h2>
+      <ul class="rule-list">
+        <li><code>feature/{도메인}/{기능명}</code> 형식으로 브랜치를 생성한다.</li>
+      </ul>
+      <div class="example-box">
+        <span class="label">예시</span>
+        <code>feature/user/signup</code><br/>
+        <code>feature/order/create</code>
+      </div>
+    </div>
+    <div class="section">
+      <h2>커밋 메시지</h2>
+      <ul class="rule-list">
+        <li>Conventional Commits를 따른다.</li>
+        <li>형식: <code>[type]: 한글 설명</code></li>
+      </ul>
+      <div class="prefix-grid" style="margin-top:0.75rem;">
+        <span class="prefix-tag">feat</span>
+        <span class="prefix-tag">fix</span>
+        <span class="prefix-tag">refactor</span>
+        <span class="prefix-tag">test</span>
+        <span class="prefix-tag">docs</span>
+        <span class="prefix-tag">chore</span>
+      </div>
+      <div class="example-box" style="margin-top:0.75rem;">
+        <span class="label">예시</span>
+        <code>[feat]: 회원 가입 API 구현</code><br/>
+        <code>[fix]: 주문 조회 NPE 수정</code>
+      </div>
+    </div>
+    <div class="section">
+      <h2>PR 규칙</h2>
+      <ul class="rule-list">
+        <li>PR 제목은 커밋 메시지 형식을 따른다.</li>
+        <li>관련 이슈를 반드시 연결한다 (<code>close #이슈번호</code>).</li>
+        <li>로컬 동작 확인 및 테스트 통과 후 PR을 올린다.</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
