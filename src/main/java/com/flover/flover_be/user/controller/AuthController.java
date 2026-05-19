@@ -1,6 +1,8 @@
 package com.flover.flover_be.user.controller;
 
+import com.flover.flover_be.user.dto.AppleDto;
 import com.flover.flover_be.user.dto.AuthDto;
+import com.flover.flover_be.user.service.AppleAuthService;
 import com.flover.flover_be.user.service.KakaoAuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,13 +14,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "Auth", description = "카카오 OAuth 인증 API")
+@Tag(name = "Auth", description = "소셜 OAuth 인증 API")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
     private final KakaoAuthService kakaoAuthService;
+    private final AppleAuthService appleAuthService;
 
     @Operation(summary = "카카오 로그인", description = "프론트에서 받은 인가 코드로 JWT 토큰 발급")
     @PostMapping("/kakao/login")
@@ -26,6 +29,15 @@ public class AuthController {
             @RequestBody @Valid AuthDto.CallbackRequest request
     ) {
         AuthDto.LoginResponse response = kakaoAuthService.kakaoLogin(request.code());
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "애플 로그인", description = "iOS 앱에서 받은 identityToken으로 JWT 토큰 발급")
+    @PostMapping("/apple/login")
+    public ResponseEntity<AuthDto.LoginResponse> appleLogin(
+            @RequestBody @Valid AppleDto.LoginRequest request
+    ) {
+        AuthDto.LoginResponse response = appleAuthService.appleLogin(request.identityToken(), request.name());
         return ResponseEntity.ok(response);
     }
 }
