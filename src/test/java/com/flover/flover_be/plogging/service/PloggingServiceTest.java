@@ -9,6 +9,7 @@ import com.flover.flover_be.plogging.exception.PloggingException;
 import com.flover.flover_be.plogging.repository.PloggingPhotoRepository;
 import com.flover.flover_be.plogging.repository.PloggingRoutePointRepository;
 import com.flover.flover_be.plogging.repository.PloggingSessionRepository;
+import com.flover.flover_be.user.domain.OAuthProvider;
 import com.flover.flover_be.user.domain.User;
 import com.flover.flover_be.user.exception.UserException;
 import com.flover.flover_be.user.repository.UserRepository;
@@ -50,7 +51,7 @@ class PloggingServiceTest {
     void complete_성공() {
         // given
         Long userId = 1L;
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
         PloggingDto.CompleteRequest request = buildRequest(List.of(
                 new PloggingDto.RoutePointRequest(37.1, 127.1),
                 new PloggingDto.RoutePointRequest(37.2, 127.2)
@@ -87,7 +88,7 @@ class PloggingServiceTest {
     void complete_경로포인트_시퀀스_부여() {
         // given
         Long userId = 1L;
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
         List<PloggingDto.RoutePointRequest> routePoints = List.of(
                 new PloggingDto.RoutePointRequest(37.1, 127.1),
                 new PloggingDto.RoutePointRequest(37.2, 127.2),
@@ -121,7 +122,7 @@ class PloggingServiceTest {
     void complete_사진_시퀀스_부여() {
         // given
         Long userId = 1L;
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
         List<String> photoUrls = List.of(
                 "https://s3.example.com/photo0.jpg",
                 "https://s3.example.com/photo1.jpg"
@@ -151,7 +152,7 @@ class PloggingServiceTest {
     void complete_유저_플로깅시간_갱신() {
         // given
         Long userId = 1L;
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
         int ploggingSeconds = 600;
         PloggingDto.CompleteRequest request = buildRequest(List.of(), List.of());
 
@@ -172,7 +173,7 @@ class PloggingServiceTest {
     void complete_빈_목록_성공() {
         // given
         Long userId = 1L;
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
         PloggingDto.CompleteRequest request = buildRequest(List.of(), List.of());
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
@@ -196,7 +197,7 @@ class PloggingServiceTest {
         Long userId = 1L;
         Pageable pageable = PageRequest.of(0, 20);
         LocalDateTime now = LocalDateTime.of(2026, 5, 4, 10, 0, 0);
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
 
         PloggingSession older = PloggingSession.create(
                 user, PloggingMode.FREE,
@@ -230,7 +231,7 @@ class PloggingServiceTest {
         // given
         Long userId = 1L;
         Pageable pageable = PageRequest.of(0, 1);
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
         PloggingSession session = PloggingSession.create(
                 user, PloggingMode.FREE,
                 LocalDateTime.now(), LocalDateTime.now().plusHours(1),
@@ -266,7 +267,7 @@ class PloggingServiceTest {
         // given
         Long userId = 1L;
         Pageable pageable = PageRequest.of(0, 20);
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(ploggingSessionRepository.findAllByUserIdOrderByStartedAtDesc(userId, pageable))
                 .willReturn(new SliceImpl<>(List.of(), pageable, false));
@@ -287,7 +288,7 @@ class PloggingServiceTest {
         Long sessionId = 10L;
         LocalDateTime startedAt = LocalDateTime.of(2026, 5, 4, 10, 0, 0);
         LocalDateTime finishedAt = LocalDateTime.of(2026, 5, 4, 10, 30, 0);
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
 
         PloggingSession session = PloggingSession.create(
                 user, PloggingMode.FREE,
@@ -331,7 +332,7 @@ class PloggingServiceTest {
         // given
         Long userId = 1L;
         Long sessionId = 999L;
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(ploggingSessionRepository.findByIdAndUserId(sessionId, userId)).willReturn(Optional.empty());
 
@@ -346,7 +347,7 @@ class PloggingServiceTest {
         // given
         Long userId = 1L;
         Long sessionId = 10L;
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
         PloggingSession session = PloggingSession.create(
                 user, PloggingMode.FREE,
                 LocalDateTime.of(2026, 5, 4, 9, 0, 0), LocalDateTime.of(2026, 5, 4, 9, 30, 0),
@@ -378,7 +379,7 @@ class PloggingServiceTest {
     void find_monthly_stats_성공() {
         // given
         Long userId = 1L;
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
         List<PloggingSessionRepository.SessionStatsView> sessions = List.of(
                 mockSessionStats(LocalDateTime.of(2026, 4, 10, 9, 0), 4000, 3000, 150, 1800),
                 mockSessionStats(LocalDateTime.of(2026, 4, 20, 9, 0), 5000, 4000, 200, 2400)
@@ -407,7 +408,7 @@ class PloggingServiceTest {
     void find_monthly_stats_기록없음_모두_0() {
         // given
         Long userId = 1L;
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(ploggingSessionRepository.findSessionStatsInPeriod(
@@ -441,7 +442,7 @@ class PloggingServiceTest {
     void find_weekly_stats_7개_날짜_반환() {
         // given
         Long userId = 1L;
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
         LocalDate startDate = LocalDate.of(2026, 4, 14);
         List<PloggingSessionRepository.SessionStatsView> sessions = List.of(
                 mockSessionStats(LocalDateTime.of(2026, 4, 15, 9, 0), 4800, 3900, 220, 3600)
@@ -467,7 +468,7 @@ class PloggingServiceTest {
     void find_weekly_stats_기록없는_날_0으로_채워짐() {
         // given
         Long userId = 1L;
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
         LocalDate startDate = LocalDate.of(2026, 4, 14);
         List<PloggingSessionRepository.SessionStatsView> sessions = List.of(
                 mockSessionStats(LocalDateTime.of(2026, 4, 15, 9, 0), 4800, 3900, 220, 3600)

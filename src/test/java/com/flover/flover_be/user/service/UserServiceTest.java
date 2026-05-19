@@ -3,6 +3,7 @@ package com.flover.flover_be.user.service;
 import com.flover.flover_be.global.storage.StorageDto;
 import com.flover.flover_be.plogging.repository.PloggingSessionRepository;
 import com.flover.flover_be.plogging.repository.PloggingSessionRepository.PloggingStatsView;
+import com.flover.flover_be.user.domain.OAuthProvider;
 import com.flover.flover_be.user.domain.User;
 import com.flover.flover_be.user.dto.UserDto;
 import com.flover.flover_be.user.exception.UserErrorCode;
@@ -19,11 +20,12 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,13 +36,71 @@ class UserServiceTest {
     @Mock private PloggingSessionRepository ploggingSessionRepository;
     @InjectMocks private UserService userService;
 
+    private static User kakaoUser(String nickname, String imageUrl) {
+        return User.create(OAuthProvider.KAKAO, "12345", "test@test.com", nickname, imageUrl);
+    }
+
+    // ──────────────── upsertOAuthUser ────────────────
+
+    @DisplayName("신규 OAuth 유저는 DB에 저장하고 반환한다")
+    @Test
+    void upsert_oauth_user_신규_유저_저장() {
+        // given
+        given(userRepository.findByProviderAndProviderId(OAuthProvider.APPLE, "apple.user.001"))
+                .willReturn(Optional.empty());
+        given(userRepository.existsByNickname(anyString())).willReturn(false);
+        given(userRepository.save(any(User.class))).willAnswer(inv -> inv.getArgument(0));
+
+        // when
+        User result = userService.upsertOAuthUser(OAuthProvider.APPLE, "apple.user.001", "user@apple.com");
+
+        // then
+        assertThat(result.getProvider()).isEqualTo(OAuthProvider.APPLE);
+        assertThat(result.getProviderId()).isEqualTo("apple.user.001");
+        assertThat(result.getNickname()).matches("플러버\\d{6}");
+        verify(userRepository).save(any(User.class));
+    }
+
+    @DisplayName("기존 OAuth 유저는 저장 없이 반환한다")
+    @Test
+    void upsert_oauth_user_기존_유저_반환() {
+        // given
+        User existing = User.create(OAuthProvider.APPLE, "apple.user.001", "user@apple.com", "플러버111111", null);
+        given(userRepository.findByProviderAndProviderId(OAuthProvider.APPLE, "apple.user.001"))
+                .willReturn(Optional.of(existing));
+
+        // when
+        User result = userService.upsertOAuthUser(OAuthProvider.APPLE, "apple.user.001", "other@apple.com");
+
+        // then
+        assertThat(result.getNickname()).isEqualTo("플러버111111");
+        verify(userRepository, never()).save(any());
+    }
+
+    @DisplayName("기본 닉네임이 중복이면 재생성한다")
+    @Test
+    void upsert_oauth_user_닉네임_중복_재생성() {
+        // given
+        given(userRepository.findByProviderAndProviderId(OAuthProvider.APPLE, "apple.user.001"))
+                .willReturn(Optional.empty());
+        given(userRepository.existsByNickname(anyString())).willReturn(true).willReturn(false);
+        given(userRepository.save(any(User.class))).willAnswer(inv -> inv.getArgument(0));
+
+        // when
+        userService.upsertOAuthUser(OAuthProvider.APPLE, "apple.user.001", null);
+
+        // then
+        verify(userRepository, times(2)).existsByNickname(anyString());
+    }
+
+    // ──────────────── findUserInfo ────────────────
+
     @DisplayName("유저 정보를 정상적으로 조회한다")
     @Test
     void find_user_info_성공() {
         // given
         Long userId = 1L;
-        User user = User.create(1L, "test@test.com", "닉네임", "https://img.url/profile.png");
-
+        User user = kakaoUser("닉네임", "https://img.url/profile.png");
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
         // when
@@ -65,22 +125,22 @@ class UserServiceTest {
                 .isInstanceOf(UserException.class);
     }
 
+    // ──────────────── updateNickname ────────────────
+
     @DisplayName("닉네임을 정상적으로 변경한다")
     @Test
     void update_nickname_성공() {
         // given
         Long userId = 1L;
-        String newNickname = "새닉네임";
-        User user = User.create(1L, "test@test.com", "기존닉네임", null);
-
+        User user = kakaoUser("기존닉네임", null);
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(userRepository.existsByNickname(newNickname)).willReturn(false);
+        given(userRepository.existsByNickname("새닉네임")).willReturn(false);
 
         // when
-        UserDto.NicknameResponse result = userService.updateNickname(userId, newNickname);
+        UserDto.NicknameResponse result = userService.updateNickname(userId, "새닉네임");
 
         // then
-        assertThat(result.nickname()).isEqualTo(newNickname);
+        assertThat(result.nickname()).isEqualTo("새닉네임");
     }
 
     @DisplayName("존재하지 않는 유저의 닉네임 변경 시 예외가 발생한다")
@@ -100,14 +160,12 @@ class UserServiceTest {
     void update_nickname_중복_닉네임_예외() {
         // given
         Long userId = 1L;
-        String duplicateNickname = "중복닉네임";
-        User user = User.create(1L, "test@test.com", "기존닉네임", null);
-
+        User user = kakaoUser("기존닉네임", null);
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(userRepository.existsByNickname(duplicateNickname)).willReturn(true);
+        given(userRepository.existsByNickname("중복닉네임")).willReturn(true);
 
         // when & then
-        assertThatThrownBy(() -> userService.updateNickname(userId, duplicateNickname))
+        assertThatThrownBy(() -> userService.updateNickname(userId, "중복닉네임"))
                 .isInstanceOf(UserException.class);
     }
 
@@ -116,17 +174,17 @@ class UserServiceTest {
     void update_nickname_같은_닉네임이면_중복_검사_건너뜀() {
         // given
         Long userId = 1L;
-        String sameNickname = "기존닉네임";
-        User user = User.create(1L, "test@test.com", sameNickname, null);
-
+        User user = kakaoUser("기존닉네임", null);
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
         // when
-        userService.updateNickname(userId, sameNickname);
+        userService.updateNickname(userId, "기존닉네임");
 
         // then
         verify(userRepository, never()).existsByNickname(anyString());
     }
+
+    // ──────────────── generateProfileImagePresignedUrl ────────────────
 
     @DisplayName("Presigned URL 발급 시 유저 존재 확인 후 URL을 반환한다")
     @Test
@@ -136,7 +194,7 @@ class UserServiceTest {
         String contentType = "image/png";
         String uploadUrl = "https://bucket.s3.amazonaws.com/presigned";
         String imageUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/users/1/profile/uuid.png";
-        User user = User.create(1L, "test@test.com", "nickname", null);
+        User user = kakaoUser("nickname", null);
         StorageDto.PresignedUploadUrlResponse expected = new StorageDto.PresignedUploadUrlResponse(uploadUrl, imageUrl);
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
@@ -161,14 +219,15 @@ class UserServiceTest {
                 .isInstanceOf(UserException.class);
     }
 
+    // ──────────────── saveProfileImageUrl ────────────────
+
     @DisplayName("기존 프로필 이미지가 없을 때 새 URL을 저장한다")
     @Test
     void save_profile_image_url_기존없음_성공() {
         // given
         Long userId = 1L;
         String newImageUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/users/1/profile/uuid.png";
-        User user = User.create(1L, "test@test.com", "nickname", null);
-
+        User user = kakaoUser("nickname", null);
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
         // when
@@ -187,8 +246,7 @@ class UserServiceTest {
         Long userId = 1L;
         String oldImageUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/users/1/profile/old.png";
         String newImageUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/users/1/profile/new.png";
-        User user = User.create(1L, "test@test.com", "nickname", oldImageUrl);
-
+        User user = kakaoUser("nickname", oldImageUrl);
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
         // when
@@ -205,8 +263,7 @@ class UserServiceTest {
         // given
         Long userId = 1L;
         String sameUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/users/1/profile/uuid.png";
-        User user = User.create(1L, "test@test.com", "nickname", sameUrl);
-
+        User user = kakaoUser("nickname", sameUrl);
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
         // when
@@ -227,12 +284,14 @@ class UserServiceTest {
                 .isInstanceOf(UserException.class);
     }
 
+    // ──────────────── findPloggingStats ────────────────
+
     @DisplayName("플로깅 기록이 있는 사용자의 누적 통계를 반환한다")
     @Test
     void find_plogging_stats_성공() {
         // given
         Long userId = 1L;
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = kakaoUser("닉네임", null);
         PloggingStatsView stats = mockStats(3L, 12000L, 8500L);
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
@@ -252,7 +311,7 @@ class UserServiceTest {
     void find_plogging_stats_기록없음_모두_0() {
         // given
         Long userId = 1L;
-        User user = User.create(12345L, "test@test.com", "닉네임", null);
+        User user = kakaoUser("닉네임", null);
         PloggingStatsView stats = mockStats(0L, 0L, 0L);
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
