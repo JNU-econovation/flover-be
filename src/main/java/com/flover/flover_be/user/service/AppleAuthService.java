@@ -44,7 +44,7 @@ public class AppleAuthService {
     private final ObjectMapper objectMapper;
 
     @Transactional
-    public AuthDto.LoginResponse appleLogin(String identityToken, String name) {
+    public AuthDto.LoginResponse appleLogin(String identityToken) {
         Claims claims = verifyIdentityToken(identityToken);
         String appleId = claims.getSubject();
         String email = claims.get("email", String.class);

@@ -6,7 +6,7 @@ import java.util.List;
 
 public class AppleDto {
 
-    public record LoginRequest(@NotBlank String identityToken, String name) {}
+    public record LoginRequest(@NotBlank String identityToken) {}
 
     public record JwksResponse(List<JwksKey> keys) {}
 

@@ -139,7 +139,7 @@ class AppleAuthServiceTest {
         when(jwtProvider.generateToken(any())).thenReturn("jwt-token");
 
         // when
-        AuthDto.LoginResponse result = appleAuthService.appleLogin(validToken(), null);
+        AuthDto.LoginResponse result = appleAuthService.appleLogin(validToken());
 
         // then
         assertThat(result.accessToken()).isEqualTo("jwt-token");
@@ -164,7 +164,7 @@ class AppleAuthServiceTest {
         when(jwtProvider.generateToken(any())).thenReturn("jwt-token");
 
         // when
-        appleAuthService.appleLogin(token, "홍길동");
+        appleAuthService.appleLogin(token);
 
         // then
         verify(userService).upsertOAuthUser(OAuthProvider.APPLE, specificAppleId, specificEmail);
@@ -183,7 +183,7 @@ class AppleAuthServiceTest {
         stubJwks();
 
         // when & then
-        assertThatThrownBy(() -> appleAuthService.appleLogin(expiredToken, null))
+        assertThatThrownBy(() -> appleAuthService.appleLogin(expiredToken))
                 .isInstanceOf(AppleAuthException.class);
     }
 
@@ -206,7 +206,7 @@ class AppleAuthServiceTest {
         when(getResponseSpec.body(AppleDto.JwksResponse.class)).thenReturn(mismatchedJwks);
 
         // when & then
-        assertThatThrownBy(() -> appleAuthService.appleLogin(validToken(), null))
+        assertThatThrownBy(() -> appleAuthService.appleLogin(validToken()))
                 .isInstanceOf(AppleAuthException.class);
     }
 
@@ -223,7 +223,7 @@ class AppleAuthServiceTest {
         stubJwks();
 
         // when & then
-        assertThatThrownBy(() -> appleAuthService.appleLogin(token, null))
+        assertThatThrownBy(() -> appleAuthService.appleLogin(token))
                 .isInstanceOf(AppleAuthException.class);
     }
 
@@ -238,7 +238,7 @@ class AppleAuthServiceTest {
         stubJwks();
 
         // when & then
-        assertThatThrownBy(() -> appleAuthService.appleLogin(token, null))
+        assertThatThrownBy(() -> appleAuthService.appleLogin(token))
                 .isInstanceOf(AppleAuthException.class);
     }
 
@@ -252,7 +252,7 @@ class AppleAuthServiceTest {
                 .thenThrow(mock(RestClientException.class));
 
         // when & then
-        assertThatThrownBy(() -> appleAuthService.appleLogin(validToken(), null))
+        assertThatThrownBy(() -> appleAuthService.appleLogin(validToken()))
                 .isInstanceOf(AppleAuthException.class);
     }
 
@@ -266,14 +266,14 @@ class AppleAuthServiceTest {
         when(getResponseSpec.body(AppleDto.JwksResponse.class)).thenReturn(noMatchJwks);
 
         // when & then
-        assertThatThrownBy(() -> appleAuthService.appleLogin(validToken(), null))
+        assertThatThrownBy(() -> appleAuthService.appleLogin(validToken()))
                 .isInstanceOf(AppleAuthException.class);
     }
 
     @DisplayName("잘못된 형식의 identityToken이면 AppleAuthException이 발생한다")
     @Test
     void 잘못된_토큰_형식_예외() {
-        assertThatThrownBy(() -> appleAuthService.appleLogin("not.a.valid.jwt.token", null))
+        assertThatThrownBy(() -> appleAuthService.appleLogin("not.a.valid.jwt.token"))
                 .isInstanceOf(AppleAuthException.class);
     }
 }

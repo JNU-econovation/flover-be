@@ -37,7 +37,7 @@ public class AuthController {
     public ResponseEntity<AuthDto.LoginResponse> appleLogin(
             @RequestBody @Valid AppleDto.LoginRequest request
     ) {
-        AuthDto.LoginResponse response = appleAuthService.appleLogin(request.identityToken(), request.name());
+        AuthDto.LoginResponse response = appleAuthService.appleLogin(request.identityToken());
         return ResponseEntity.ok(response);
     }
 }
