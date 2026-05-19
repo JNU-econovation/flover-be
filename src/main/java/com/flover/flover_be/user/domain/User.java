@@ -11,21 +11,25 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = @UniqueConstraint(columnNames = {"provider", "provider_id"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
-    private static final long EXP_GRANT_INTERVAL_SECONDS = 5L;  // 5초마다 EXP 1 부여
+    private static final long EXP_GRANT_INTERVAL_SECONDS = 5L;
     private static final long EXP_PER_INTERVAL = 1L;
-    private static final long EXPERIENCE_PER_LEVEL = 720L;       // 1시간 플로깅 시 레벨업
+    private static final long EXPERIENCE_PER_LEVEL = 720L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "kakao_id", unique = true, nullable = false)
-    private Long kakaoId;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "provider", nullable = false, length = 20)
+    private OAuthProvider provider;
+
+    @Column(name = "provider_id", nullable = false)
+    private String providerId;
 
     private String email;
     private String nickname;
@@ -50,9 +54,10 @@ public class User {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    public static User create(Long kakaoId, String email, String nickname, String profileImageUrl) {
+    public static User create(OAuthProvider provider, String providerId, String email, String nickname, String profileImageUrl) {
         User user = new User();
-        user.kakaoId = kakaoId;
+        user.provider = provider;
+        user.providerId = providerId;
         user.email = email;
         user.nickname = nickname;
         user.profileImageUrl = profileImageUrl;
