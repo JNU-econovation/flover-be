@@ -2,12 +2,12 @@ package com.flover.flover_be.user.service;
 
 import com.flover.flover_be.global.config.KakaoProperties;
 import com.flover.flover_be.global.jwt.JwtProvider;
+import com.flover.flover_be.user.domain.OAuthProvider;
 import com.flover.flover_be.user.domain.User;
 import com.flover.flover_be.user.dto.AuthDto;
 import com.flover.flover_be.user.dto.KakaoDto;
 import com.flover.flover_be.user.exception.AuthErrorCode;
 import com.flover.flover_be.user.exception.KakaoAuthException;
-import com.flover.flover_be.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -19,8 +19,6 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
-import java.util.concurrent.ThreadLocalRandom;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -29,7 +27,7 @@ public class KakaoAuthService {
     private static final String KAKAO_AUTH_URL = "https://kauth.kakao.com";
     private static final String KAKAO_API_URL = "https://kapi.kakao.com";
 
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final JwtProvider jwtProvider;
     private final RestClient restClient;
     private final KakaoProperties kakaoProperties;
@@ -93,20 +91,6 @@ public class KakaoAuthService {
     private User upsertUser(KakaoDto.UserInfoResponse userInfo) {
         KakaoDto.UserInfoResponse.KakaoAccount account = userInfo.kakaoAccount();
         String email = account != null ? account.email() : null;
-
-        return userRepository.findByKakaoId(userInfo.id())
-                .orElseGet(() -> {
-                    String defaultNickname = generateDefaultNickname();
-                    return userRepository.save(User.create(userInfo.id(), email, defaultNickname, null));
-                });
-    }
-
-    private String generateDefaultNickname() {
-        String nickname;
-        do {
-            int suffix = ThreadLocalRandom.current().nextInt(100000, 1000000);
-            nickname = "플러버" + suffix;
-        } while (userRepository.existsByNickname(nickname));
-        return nickname;
+        return userService.upsertOAuthUser(OAuthProvider.KAKAO, String.valueOf(userInfo.id()), email);
     }
 }

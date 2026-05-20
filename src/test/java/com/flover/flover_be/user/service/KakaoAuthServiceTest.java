@@ -2,12 +2,13 @@ package com.flover.flover_be.user.service;
 
 import com.flover.flover_be.global.config.KakaoProperties;
 import com.flover.flover_be.global.jwt.JwtProvider;
+import com.flover.flover_be.user.domain.OAuthProvider;
 import com.flover.flover_be.user.domain.User;
 import com.flover.flover_be.user.dto.AuthDto;
 import com.flover.flover_be.user.dto.KakaoDto;
 import com.flover.flover_be.user.exception.KakaoAuthException;
-import com.flover.flover_be.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,13 +19,14 @@ import org.mockito.quality.Strictness;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
-import org.mockito.ArgumentCaptor;
-
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
 @ExtendWith(MockitoExtension.class)
@@ -32,12 +34,11 @@ import static org.mockito.Mockito.*;
 class KakaoAuthServiceTest {
 
     @Mock private RestClient restClient;
-    @Mock private UserRepository userRepository;
+    @Mock private UserService userService;
     @Mock private JwtProvider jwtProvider;
     @Mock private KakaoProperties kakaoProperties;
 
-    @InjectMocks
-    private KakaoAuthService kakaoAuthService;
+    @InjectMocks private KakaoAuthService kakaoAuthService;
 
     private RestClient.RequestBodyUriSpec postUriSpec;
     private RestClient.RequestBodySpec postBodySpec;
@@ -69,84 +70,74 @@ class KakaoAuthServiceTest {
         when(getHeadersSpec.retrieve()).thenReturn(getResponseSpec);
     }
 
-    private KakaoDto.UserInfoResponse buildUserInfo(Long id, String email, String nickname) {
-        var profile = new KakaoDto.UserInfoResponse.KakaoAccount.Profile(nickname, "http://img.url");
+    private KakaoDto.UserInfoResponse buildUserInfo(Long id, String email) {
+        var profile = new KakaoDto.UserInfoResponse.KakaoAccount.Profile("홍길동", "http://img.url");
         var account = new KakaoDto.UserInfoResponse.KakaoAccount(email, profile);
         return new KakaoDto.UserInfoResponse(id, account);
     }
 
-    @Test
-    void 신규_유저면_save_호출() {
-        KakaoDto.UserInfoResponse userInfo = buildUserInfo(999L, "user@test.com", "홍길동");
-        User saved = User.create(999L, "user@test.com", "플러버123456", null);
-
+    private void stubKakaoApi(KakaoDto.UserInfoResponse userInfo) {
         when(postResponseSpec.body(KakaoDto.TokenResponse.class))
                 .thenReturn(new KakaoDto.TokenResponse("kakao-token", "Bearer", "refresh", 3600L));
         when(getResponseSpec.body(KakaoDto.UserInfoResponse.class)).thenReturn(userInfo);
-        when(userRepository.findByKakaoId(999L)).thenReturn(Optional.empty());
-        when(userRepository.existsByNickname(anyString())).thenReturn(false);
-        when(userRepository.save(any(User.class))).thenReturn(saved);
+    }
+
+    @DisplayName("카카오 로그인 성공 시 JWT를 반환한다")
+    @Test
+    void 카카오_로그인_성공() {
+        // given
+        KakaoDto.UserInfoResponse userInfo = buildUserInfo(999L, "user@test.com");
+        User user = User.create(OAuthProvider.KAKAO, "999", "user@test.com", "플러버123456", null);
+
+        stubKakaoApi(userInfo);
+        when(userService.upsertOAuthUser(OAuthProvider.KAKAO, "999", "user@test.com")).thenReturn(user);
         when(jwtProvider.generateToken(any())).thenReturn("jwt-token");
 
+        // when
         AuthDto.LoginResponse result = kakaoAuthService.kakaoLogin("auth-code");
 
+        // then
         assertThat(result.accessToken()).isEqualTo("jwt-token");
-        verify(userRepository).save(any(User.class));
+        assertThat(result.tokenType()).isEqualTo("Bearer");
     }
 
+    @DisplayName("카카오 로그인 시 provider=KAKAO, providerId=카카오ID(String)로 upsert를 호출한다")
     @Test
-    void 신규_유저_기본_닉네임이_플러버_형식으로_생성됨() {
-        KakaoDto.UserInfoResponse userInfo = buildUserInfo(999L, "user@test.com", "홍길동");
+    void 카카오_upsert_인자_검증() {
+        // given
+        KakaoDto.UserInfoResponse userInfo = buildUserInfo(999L, "user@test.com");
+        User user = User.create(OAuthProvider.KAKAO, "999", "user@test.com", "플러버123456", null);
 
-        when(postResponseSpec.body(KakaoDto.TokenResponse.class))
-                .thenReturn(new KakaoDto.TokenResponse("kakao-token", "Bearer", "refresh", 3600L));
-        when(getResponseSpec.body(KakaoDto.UserInfoResponse.class)).thenReturn(userInfo);
-        when(userRepository.findByKakaoId(999L)).thenReturn(Optional.empty());
-        when(userRepository.existsByNickname(anyString())).thenReturn(false);
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        stubKakaoApi(userInfo);
+        when(userService.upsertOAuthUser(any(), any(), any())).thenReturn(user);
         when(jwtProvider.generateToken(any())).thenReturn("jwt-token");
 
+        // when
         kakaoAuthService.kakaoLogin("auth-code");
 
-        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(captor.capture());
-        assertThat(captor.getValue().getNickname()).matches("플러버\\d{6}");
+        // then
+        verify(userService).upsertOAuthUser(OAuthProvider.KAKAO, "999", "user@test.com");
     }
 
+    @DisplayName("카카오 계정에 이메일이 없으면 null로 upsert를 호출한다")
     @Test
-    void 닉네임_중복시_재생성() {
-        KakaoDto.UserInfoResponse userInfo = buildUserInfo(999L, "user@test.com", "홍길동");
+    void 이메일_없는_카카오_계정_upsert() {
+        // given
+        KakaoDto.UserInfoResponse userInfo = buildUserInfo(999L, null);
+        User user = User.create(OAuthProvider.KAKAO, "999", null, "플러버123456", null);
 
-        when(postResponseSpec.body(KakaoDto.TokenResponse.class))
-                .thenReturn(new KakaoDto.TokenResponse("kakao-token", "Bearer", "refresh", 3600L));
-        when(getResponseSpec.body(KakaoDto.UserInfoResponse.class)).thenReturn(userInfo);
-        when(userRepository.findByKakaoId(999L)).thenReturn(Optional.empty());
-        when(userRepository.existsByNickname(anyString())).thenReturn(true).thenReturn(false);
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        stubKakaoApi(userInfo);
+        when(userService.upsertOAuthUser(any(), any(), any())).thenReturn(user);
         when(jwtProvider.generateToken(any())).thenReturn("jwt-token");
 
+        // when
         kakaoAuthService.kakaoLogin("auth-code");
 
-        verify(userRepository, times(2)).existsByNickname(anyString());
+        // then
+        verify(userService).upsertOAuthUser(OAuthProvider.KAKAO, "999", null);
     }
 
-    @Test
-    void 기존_유저면_save_호출_안하고_닉네임_유지() {
-        KakaoDto.UserInfoResponse userInfo = buildUserInfo(999L, "user@test.com", "새닉네임");
-        User existing = User.create(999L, "user@test.com", "기존닉네임", "old.jpg");
-
-        when(postResponseSpec.body(KakaoDto.TokenResponse.class))
-                .thenReturn(new KakaoDto.TokenResponse("kakao-token", "Bearer", "refresh", 3600L));
-        when(getResponseSpec.body(KakaoDto.UserInfoResponse.class)).thenReturn(userInfo);
-        when(userRepository.findByKakaoId(999L)).thenReturn(Optional.of(existing));
-        when(jwtProvider.generateToken(any())).thenReturn("jwt-token");
-
-        kakaoAuthService.kakaoLogin("auth-code");
-
-        assertThat(existing.getNickname()).isEqualTo("기존닉네임");
-        verify(userRepository, never()).save(any());
-    }
-
+    @DisplayName("카카오 토큰 발급에 실패하면 KakaoAuthException이 발생한다")
     @Test
     void 카카오_토큰_실패시_KakaoAuthException_발생() {
         when(postResponseSpec.body(KakaoDto.TokenResponse.class))

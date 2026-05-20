@@ -2,6 +2,7 @@ package com.flover.flover_be.user.service;
 
 import com.flover.flover_be.global.storage.StorageDto;
 import com.flover.flover_be.plogging.repository.PloggingSessionRepository;
+import com.flover.flover_be.user.domain.OAuthProvider;
 import com.flover.flover_be.user.domain.User;
 import com.flover.flover_be.user.dto.UserDto;
 import com.flover.flover_be.user.exception.UserErrorCode;
@@ -10,6 +11,8 @@ import com.flover.flover_be.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -58,6 +61,24 @@ public class UserService {
         }
         user.updateProfileImage(imageUrl);
         return new UserDto.ProfileImageResponse(user.getId(), user.getProfileImageUrl());
+    }
+
+    @Transactional
+    public User upsertOAuthUser(OAuthProvider provider, String providerId, String email) {
+        return userRepository.findByProviderAndProviderId(provider, providerId)
+                .orElseGet(() -> {
+                    String nickname = generateDefaultNickname();
+                    return userRepository.save(User.create(provider, providerId, email, nickname, null));
+                });
+    }
+
+    private String generateDefaultNickname() {
+        String nickname;
+        do {
+            int suffix = ThreadLocalRandom.current().nextInt(100000, 1000000);
+            nickname = "플러버" + suffix;
+        } while (userRepository.existsByNickname(nickname));
+        return nickname;
     }
 
     private User getUserOrThrow(Long userId) {

@@ -30,6 +30,7 @@ jobs:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          APPLE_CLIENT_ID: ${{ secrets.APPLE_CLIENT_ID }}
         run: |
           MISSING=()
           for VAR in DOCKER_HUB_USERNAME DOCKER_HUB_TOKEN DB_USERNAME DB_PASSWORD \
