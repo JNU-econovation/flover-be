@@ -1,6 +1,8 @@
 package com.flover.flover_be.user.service;
 
 import com.flover.flover_be.global.storage.StorageDto;
+import com.flover.flover_be.plogging.repository.PloggingPhotoRepository;
+import com.flover.flover_be.plogging.repository.PloggingRoutePointRepository;
 import com.flover.flover_be.plogging.repository.PloggingSessionRepository;
 import com.flover.flover_be.user.domain.OAuthProvider;
 import com.flover.flover_be.user.domain.User;
@@ -21,6 +23,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final ProfileImageStorageService profileImageStorageService;
     private final PloggingSessionRepository ploggingSessionRepository;
+    private final PloggingPhotoRepository ploggingPhotoRepository;
+    private final PloggingRoutePointRepository ploggingRoutePointRepository;
 
     @Transactional(readOnly = true)
     public UserDto.UserInfoResponse findUserInfo(Long userId) {
@@ -79,6 +83,18 @@ public class UserService {
             nickname = "플러버" + suffix;
         } while (userRepository.existsByNickname(nickname));
         return nickname;
+    }
+
+    @Transactional
+    public void deleteUser(Long userId) {
+        User user = getUserOrThrow(userId);
+        if (user.getProfileImageUrl() != null) {
+            profileImageStorageService.deleteIfOwnedByBucket(user.getProfileImageUrl());
+        }
+        ploggingPhotoRepository.deleteByPloggingSessionUserId(userId);
+        ploggingRoutePointRepository.deleteByPloggingSessionUserId(userId);
+        ploggingSessionRepository.deleteByUserId(userId);
+        userRepository.delete(user);
     }
 
     private User getUserOrThrow(Long userId) {

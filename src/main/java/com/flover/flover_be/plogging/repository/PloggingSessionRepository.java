@@ -4,6 +4,7 @@ import com.flover.flover_be.plogging.domain.PloggingSession;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -36,4 +37,8 @@ public interface PloggingSessionRepository extends JpaRepository<PloggingSession
         int getCaloriesBurned();
         int getPloggingSeconds();
     }
+
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM PloggingSession s WHERE s.user.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }
