@@ -13,6 +13,8 @@ import com.flover.flover_be.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -88,13 +90,21 @@ public class UserService {
     @Transactional
     public void deleteUser(Long userId) {
         User user = getUserOrThrow(userId);
-        if (user.getProfileImageUrl() != null) {
-            profileImageStorageService.deleteIfOwnedByBucket(user.getProfileImageUrl());
-        }
+        String profileImageUrl = user.getProfileImageUrl();
+
         ploggingPhotoRepository.deleteByPloggingSessionUserId(userId);
         ploggingRoutePointRepository.deleteByPloggingSessionUserId(userId);
         ploggingSessionRepository.deleteByUserId(userId);
         userRepository.delete(user);
+
+        if (profileImageUrl != null) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    profileImageStorageService.deleteIfOwnedByBucket(profileImageUrl);
+                }
+            });
+        }
     }
 
     private User getUserOrThrow(Long userId) {
