@@ -1,6 +1,8 @@
 package com.flover.flover_be.user.service;
 
 import com.flover.flover_be.global.storage.StorageDto;
+import com.flover.flover_be.plogging.repository.PloggingPhotoRepository;
+import com.flover.flover_be.plogging.repository.PloggingRoutePointRepository;
 import com.flover.flover_be.plogging.repository.PloggingSessionRepository;
 import com.flover.flover_be.plogging.repository.PloggingSessionRepository.PloggingStatsView;
 import com.flover.flover_be.user.domain.OAuthProvider;
@@ -12,6 +14,7 @@ import com.flover.flover_be.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -24,6 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -34,6 +38,8 @@ class UserServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private ProfileImageStorageService profileImageStorageService;
     @Mock private PloggingSessionRepository ploggingSessionRepository;
+    @Mock private PloggingPhotoRepository ploggingPhotoRepository;
+    @Mock private PloggingRoutePointRepository ploggingRoutePointRepository;
     @InjectMocks private UserService userService;
 
     private static User kakaoUser(String nickname, String imageUrl) {
@@ -343,5 +349,60 @@ class UserServiceTest {
             public long getTotalStepCount() { return totalStepCount; }
             public long getTotalDistanceMeters() { return totalDistanceMeters; }
         };
+    }
+
+    // ──────────────── deleteUser ────────────────
+
+    @DisplayName("프로필 이미지가 있는 유저 탈퇴 시 S3 이미지 삭제 후 FK 순서에 맞게 데이터를 제거한다")
+    @Test
+    void delete_user_프로필이미지있음_S3삭제_후_순서대로_데이터삭제() {
+        // given
+        Long userId = 1L;
+        String profileImageUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/users/1/profile/img.png";
+        User user = kakaoUser("닉네임", profileImageUrl);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+        // when
+        userService.deleteUser(userId);
+
+        // then
+        verify(profileImageStorageService).deleteIfOwnedByBucket(profileImageUrl);
+        InOrder inOrder = inOrder(ploggingPhotoRepository, ploggingRoutePointRepository, ploggingSessionRepository, userRepository);
+        inOrder.verify(ploggingPhotoRepository).deleteByPloggingSessionUserId(userId);
+        inOrder.verify(ploggingRoutePointRepository).deleteByPloggingSessionUserId(userId);
+        inOrder.verify(ploggingSessionRepository).deleteByUserId(userId);
+        inOrder.verify(userRepository).delete(user);
+    }
+
+    @DisplayName("프로필 이미지가 없는 유저 탈퇴 시 S3 삭제 없이 데이터를 제거한다")
+    @Test
+    void delete_user_프로필이미지없음_S3삭제없이_데이터삭제() {
+        // given
+        Long userId = 1L;
+        User user = kakaoUser("닉네임", null);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+        // when
+        userService.deleteUser(userId);
+
+        // then
+        verify(profileImageStorageService, never()).deleteIfOwnedByBucket(any());
+        verify(ploggingPhotoRepository).deleteByPloggingSessionUserId(userId);
+        verify(ploggingRoutePointRepository).deleteByPloggingSessionUserId(userId);
+        verify(ploggingSessionRepository).deleteByUserId(userId);
+        verify(userRepository).delete(user);
+    }
+
+    @DisplayName("존재하지 않는 유저 탈퇴 시 예외가 발생하고 삭제 로직이 실행되지 않는다")
+    @Test
+    void delete_user_유저없음_예외() {
+        // given
+        given(userRepository.findById(anyLong())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> userService.deleteUser(1L))
+                .isInstanceOf(UserException.class)
+                .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.USER_NOT_FOUND);
+        verify(userRepository, never()).delete(any(User.class));
     }
 }
