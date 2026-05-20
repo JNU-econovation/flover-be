@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -64,5 +65,12 @@ public class UserController {
             @RequestBody @Valid UserDto.ProfileImageUrlRequest request
     ) {
         return ResponseEntity.ok(userService.saveProfileImageUrl(userId, request.imageUrl()));
+    }
+
+    @Operation(summary = "회원 탈퇴", description = "계정 및 모든 연관 데이터를 삭제합니다.")
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteAccount(@LoginUserId Long userId) {
+        userService.deleteUser(userId);
+        return ResponseEntity.noContent().build();
     }
 }

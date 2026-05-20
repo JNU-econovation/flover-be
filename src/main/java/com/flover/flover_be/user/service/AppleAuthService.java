@@ -27,6 +27,7 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
+import java.util.List;
 import java.util.Set;
 
 @Slf4j
@@ -57,6 +58,7 @@ public class AppleAuthService {
     }
 
     private Claims verifyIdentityToken(String identityToken) {
+        logDecodedTokenInfo(identityToken);
         String kid = extractKid(identityToken);
         PublicKey publicKey = fetchApplePublicKey(kid);
 
@@ -72,11 +74,32 @@ public class AppleAuthService {
         } catch (AppleAuthException e) {
             throw e;
         } catch (JwtException e) {
-            log.error("Apple identityToken 서명 검증 실패: {}", e.getMessage());
+            log.error("[Apple] 서명 검증 실패 — {}: {}", e.getClass().getSimpleName(), e.getMessage());
             throw new AppleAuthException(AuthErrorCode.APPLE_INVALID_TOKEN);
         } catch (Exception e) {
-            log.error("Apple identityToken 처리 중 오류: {}", e.getMessage());
+            log.error("[Apple] identityToken 처리 오류 — {}: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             throw new AppleAuthException(AuthErrorCode.APPLE_INVALID_TOKEN);
+        }
+    }
+
+    // 서명 검증 전에 만료 여부와 aud를 미리 확인해 실패 원인을 로그로 남긴다
+    private void logDecodedTokenInfo(String identityToken) {
+        try {
+            String[] parts = identityToken.split("\\.");
+            JsonNode payload = objectMapper.readTree(Base64.getUrlDecoder().decode(parts[1]));
+
+            long exp = payload.path("exp").asLong();
+            long now = System.currentTimeMillis() / 1000;
+            if (exp < now) {
+                log.error("[Apple] 토큰 만료 — {}초 전 만료 (exp={}, now={})", now - exp, exp, now);
+            }
+
+            String aud = payload.path("aud").asText();
+            if (!appleProperties.clientId().equals(aud)) {
+                log.error("[Apple] aud 불일치 — 토큰: {}, 설정: {}", aud, appleProperties.clientId());
+            }
+        } catch (Exception e) {
+            log.warn("[Apple] 토큰 사전 디코딩 실패: {}", e.getMessage());
         }
     }
 
@@ -87,12 +110,14 @@ public class AppleAuthService {
             JsonNode header = objectMapper.readTree(headerBytes);
             String kid = header.path("kid").asText(null);
             if (kid == null) {
+                log.error("[Apple] 토큰 헤더에 kid 없음");
                 throw new AppleAuthException(AuthErrorCode.APPLE_INVALID_TOKEN);
             }
             return kid;
         } catch (AppleAuthException e) {
             throw e;
         } catch (Exception e) {
+            log.error("[Apple] kid 추출 실패: {}", e.getMessage());
             throw new AppleAuthException(AuthErrorCode.APPLE_INVALID_TOKEN);
         }
     }
@@ -105,18 +130,24 @@ public class AppleAuthService {
                     .retrieve()
                     .body(AppleDto.JwksResponse.class);
         } catch (RestClientException e) {
-            log.error("Apple JWKS 조회 실패: {}", e.getMessage());
+            log.error("[Apple DEBUG] JWKS 조회 실패: {}", e.getMessage());
             throw new AppleAuthException(AuthErrorCode.APPLE_INVALID_TOKEN);
         }
 
         if (jwks == null) {
+            log.error("[Apple] JWKS 응답이 null");
             throw new AppleAuthException(AuthErrorCode.APPLE_INVALID_TOKEN);
         }
+
+        List<String> availableKids = jwks.keys().stream().map(AppleDto.JwksKey::kid).toList();
 
         AppleDto.JwksKey matchedKey = jwks.keys().stream()
                 .filter(key -> kid.equals(key.kid()))
                 .findFirst()
-                .orElseThrow(() -> new AppleAuthException(AuthErrorCode.APPLE_INVALID_TOKEN));
+                .orElseThrow(() -> {
+                    log.error("[Apple] kid 불일치 — 토큰 kid: {}, JWKS kids: {}", kid, availableKids);
+                    return new AppleAuthException(AuthErrorCode.APPLE_INVALID_TOKEN);
+                });
 
         return buildRsaPublicKey(matchedKey);
     }

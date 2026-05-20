@@ -1,6 +1,8 @@
 package com.flover.flover_be.user.service;
 
 import com.flover.flover_be.global.storage.StorageDto;
+import com.flover.flover_be.plogging.repository.PloggingPhotoRepository;
+import com.flover.flover_be.plogging.repository.PloggingRoutePointRepository;
 import com.flover.flover_be.plogging.repository.PloggingSessionRepository;
 import com.flover.flover_be.plogging.repository.PloggingSessionRepository.PloggingStatsView;
 import com.flover.flover_be.user.domain.OAuthProvider;
@@ -12,9 +14,14 @@ import com.flover.flover_be.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Optional;
 
@@ -24,6 +31,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -34,6 +43,8 @@ class UserServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private ProfileImageStorageService profileImageStorageService;
     @Mock private PloggingSessionRepository ploggingSessionRepository;
+    @Mock private PloggingPhotoRepository ploggingPhotoRepository;
+    @Mock private PloggingRoutePointRepository ploggingRoutePointRepository;
     @InjectMocks private UserService userService;
 
     private static User kakaoUser(String nickname, String imageUrl) {
@@ -343,5 +354,71 @@ class UserServiceTest {
             public long getTotalStepCount() { return totalStepCount; }
             public long getTotalDistanceMeters() { return totalDistanceMeters; }
         };
+    }
+
+    // ──────────────── deleteUser ────────────────
+
+    @DisplayName("프로필 이미지가 있는 유저 탈퇴 시 DB 삭제 완료 후 트랜잭션 커밋 시점에 S3 이미지를 삭제한다")
+    @Test
+    void delete_user_프로필이미지있음_DB삭제_후_커밋시점에_S3삭제() {
+        // given
+        Long userId = 1L;
+        String profileImageUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/users/1/profile/img.png";
+        User user = kakaoUser("닉네임", profileImageUrl);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+        try (MockedStatic<TransactionSynchronizationManager> txSync = mockStatic(TransactionSynchronizationManager.class)) {
+            ArgumentCaptor<TransactionSynchronization> syncCaptor = ArgumentCaptor.forClass(TransactionSynchronization.class);
+
+            // when
+            userService.deleteUser(userId);
+
+            // then - DB 삭제가 FK 순서대로 실행됐는지 확인
+            InOrder inOrder = inOrder(ploggingPhotoRepository, ploggingRoutePointRepository, ploggingSessionRepository, userRepository);
+            inOrder.verify(ploggingPhotoRepository).deleteByPloggingSessionUserId(userId);
+            inOrder.verify(ploggingRoutePointRepository).deleteByPloggingSessionUserId(userId);
+            inOrder.verify(ploggingSessionRepository).deleteByUserId(userId);
+            inOrder.verify(userRepository).delete(user);
+
+            // S3 삭제는 커밋 이후에 실행되도록 등록됐는지 확인
+            txSync.verify(() -> TransactionSynchronizationManager.registerSynchronization(syncCaptor.capture()));
+            verify(profileImageStorageService, never()).deleteIfOwnedByBucket(any());
+
+            // 커밋 시점 시뮬레이션 → afterCommit 호출 시 S3 삭제 실행
+            syncCaptor.getValue().afterCommit();
+            verify(profileImageStorageService).deleteIfOwnedByBucket(profileImageUrl);
+        }
+    }
+
+    @DisplayName("프로필 이미지가 없는 유저 탈퇴 시 S3 삭제 없이 데이터를 제거한다")
+    @Test
+    void delete_user_프로필이미지없음_S3삭제없이_데이터삭제() {
+        // given
+        Long userId = 1L;
+        User user = kakaoUser("닉네임", null);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+        // when
+        userService.deleteUser(userId);
+
+        // then
+        verify(profileImageStorageService, never()).deleteIfOwnedByBucket(any());
+        verify(ploggingPhotoRepository).deleteByPloggingSessionUserId(userId);
+        verify(ploggingRoutePointRepository).deleteByPloggingSessionUserId(userId);
+        verify(ploggingSessionRepository).deleteByUserId(userId);
+        verify(userRepository).delete(user);
+    }
+
+    @DisplayName("존재하지 않는 유저 탈퇴 시 예외가 발생하고 삭제 로직이 실행되지 않는다")
+    @Test
+    void delete_user_유저없음_예외() {
+        // given
+        given(userRepository.findById(anyLong())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> userService.deleteUser(1L))
+                .isInstanceOf(UserException.class)
+                .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.USER_NOT_FOUND);
+        verify(userRepository, never()).delete(any(User.class));
     }
 }
