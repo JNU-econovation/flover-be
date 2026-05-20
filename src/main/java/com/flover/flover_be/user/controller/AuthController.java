@@ -1,5 +1,6 @@
 package com.flover.flover_be.user.controller;
 
+import com.flover.flover_be.global.auth.LoginUserId;
 import com.flover.flover_be.user.dto.AppleDto;
 import com.flover.flover_be.user.dto.AuthDto;
 import com.flover.flover_be.user.service.AppleAuthService;
@@ -39,5 +40,11 @@ public class AuthController {
     ) {
         AuthDto.LoginResponse response = appleAuthService.appleLogin(request.identityToken());
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "로그아웃", description = "서버 처리 없이 204 반환. 클라이언트가 토큰을 삭제해야 합니다.")
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@LoginUserId Long userId) {
+        return ResponseEntity.noContent().build();
     }
 }
