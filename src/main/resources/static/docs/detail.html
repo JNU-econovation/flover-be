@@ -1,0 +1,1007 @@
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flover Backend — 기술 문서</title>
+    <style>
+        :root {
+            --green: #2ecc71;
+            --green-dark: #27ae60;
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #222538;
+            --border: #2a2d3e;
+            --text: #e2e8f0;
+            --muted: #8892a4;
+            --code-bg: #141720;
+            --accent: #7c6af7;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0; left: 0;
+            width: 260px; height: 100vh;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 24px 0;
+            z-index: 100;
+        }
+        .sidebar-logo {
+            padding: 0 24px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .sidebar-logo h1 { font-size: 18px; color: var(--green); font-weight: 700; }
+        .sidebar-logo p { font-size: 12px; color: var(--muted); margin-top: 4px; }
+        .nav-section { padding: 16px 24px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 600; }
+        .nav a {
+            display: block;
+            padding: 7px 24px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 13.5px;
+            border-left: 2px solid transparent;
+            transition: all 0.15s;
+        }
+        .nav a:hover, .nav a.active {
+            color: var(--text);
+            background: var(--surface2);
+            border-left-color: var(--green);
+        }
+
+        /* Main */
+        .main { margin-left: 260px; padding: 48px 56px; max-width: 1100px; }
+
+        /* Section */
+        section { margin-bottom: 72px; }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        .section-icon { font-size: 22px; }
+        h2 { font-size: 22px; font-weight: 700; color: var(--text); }
+        h3 { font-size: 16px; font-weight: 600; color: var(--text); margin: 24px 0 10px; }
+        h4 { font-size: 14px; font-weight: 600; color: var(--green); margin: 16px 0 6px; }
+        p { color: var(--muted); margin-bottom: 10px; }
+
+        /* Cards */
+        .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin: 20px 0; }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .card-icon { font-size: 24px; margin-bottom: 10px; }
+        .card h4 { color: var(--text); font-size: 14px; margin: 0 0 6px; }
+        .card p { font-size: 13px; color: var(--muted); margin: 0; }
+
+        /* Code */
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 18px 20px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 12px 0 20px;
+        }
+        code { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; }
+        .inline-code {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-size: 13px;
+            font-family: 'JetBrains Mono', Consolas, monospace;
+            color: #a9b4c7;
+        }
+
+        /* Flow */
+        .flow { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 14px 0;
+            border-left: 2px solid var(--border);
+            padding-left: 20px;
+            margin-left: 12px;
+            position: relative;
+        }
+        .flow-step::before {
+            content: '';
+            position: absolute;
+            left: -7px;
+            top: 18px;
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: var(--green);
+            border: 2px solid var(--bg);
+        }
+        .flow-step:last-child { border-left-color: transparent; }
+        .flow-num {
+            background: var(--green);
+            color: #000;
+            font-size: 11px;
+            font-weight: 700;
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .flow-content h4 { margin: 0 0 4px; color: var(--text); font-size: 14px; }
+        .flow-content p { margin: 0; font-size: 13px; }
+
+        /* Table */
+        .table-wrap { overflow-x: auto; margin: 16px 0; }
+        table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+        th {
+            background: var(--surface2);
+            color: var(--muted);
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--muted); }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--surface); }
+        td:first-child { color: var(--text); }
+        .method-get { color: #61afef; font-weight: 600; }
+        .method-post { color: #98c379; font-weight: 600; }
+        .method-put { color: #e5c07b; font-weight: 600; }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-auth { background: #1a3a2a; color: #68d391; }
+        .badge-open { background: #2d2d2d; color: #888; }
+
+        /* Interview QA */
+        .qa-list { display: flex; flex-direction: column; gap: 16px; margin: 16px 0; }
+        .qa {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .qa-q {
+            padding: 14px 20px;
+            background: var(--surface2);
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .qa-q-icon { color: var(--accent); flex-shrink: 0; }
+        .qa-a { padding: 14px 20px; font-size: 13.5px; color: var(--muted); line-height: 1.8; }
+        .qa-a strong { color: var(--text); }
+
+        /* Highlight box */
+        .highlight-box {
+            background: rgba(46, 204, 113, 0.07);
+            border: 1px solid rgba(46, 204, 113, 0.25);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 16px 0;
+            font-size: 13.5px;
+            color: var(--muted);
+        }
+        .highlight-box strong { color: var(--green); }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .sidebar { display: none; }
+            .main { margin-left: 0; padding: 24px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+    <div class="sidebar-logo">
+        <h1>Flover BE</h1>
+        <p>Spring Boot 4 · Java 21 · MySQL</p>
+    </div>
+    <div class="nav">
+        <div class="nav-section">개요</div>
+        <a href="#overview">프로젝트 개요</a>
+        <a href="#stack">기술 스택</a>
+        <a href="#architecture">아키텍처</a>
+
+        <div class="nav-section">핵심 구현</div>
+        <a href="#oauth">OAuth 소셜 로그인</a>
+        <a href="#jwt">JWT 인증</a>
+        <a href="#s3">S3 파일 업로드</a>
+        <a href="#plogging">플로깅 도메인</a>
+        <a href="#facility">주변 시설 검색</a>
+        <a href="#route">경로 추천</a>
+        <a href="#exception">예외 처리</a>
+        <a href="#async">비동기 처리</a>
+
+        <div class="nav-section">API & DB</div>
+        <a href="#api">API 엔드포인트</a>
+        <a href="#db">DB 스키마</a>
+
+        <div class="nav-section">면접 대비</div>
+        <a href="#interview">면접 예상 질문</a>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main">
+
+    <!-- 개요 -->
+    <section id="overview">
+        <div class="section-header">
+            <span class="section-icon">🌱</span>
+            <h2>프로젝트 개요</h2>
+        </div>
+        <p>
+            <strong style="color:var(--text)">Flover</strong>는 플로깅(Plogging — 조깅하며 쓰레기 줍기) 활동을 기록·분석하는 백엔드 서비스입니다.
+            사용자 인증, 플로깅 세션 관리, AI 기반 쓰레기 인식, 주변 시설 조회, 경로 추천 기능을 제공합니다.
+        </p>
+        <div class="cards">
+            <div class="card">
+                <div class="card-icon">👤</div>
+                <h4>User 도메인</h4>
+                <p>OAuth 소셜 로그인 (Kakao · Apple), JWT 인증, 레벨·칭호 시스템</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">🏃</div>
+                <h4>Plogging 도메인</h4>
+                <p>세션 기록, 경로 좌표, 인증샷, 월간·주간 통계</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">🗑️</div>
+                <h4>Facility 도메인</h4>
+                <p>반경 1km 내 화장실·쓰레기통 조회 (공간 인덱스)</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">🗺️</div>
+                <h4>Route 도메인</h4>
+                <p>외부 라우팅 엔진 연동, 3회 재시도, 경로 추천</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 기술 스택 -->
+    <section id="stack">
+        <div class="section-header">
+            <span class="section-icon">⚙️</span>
+            <h2>기술 스택</h2>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>분류</th><th>기술</th><th>비고</th></tr></thead>
+                <tbody>
+                <tr><td>언어 / 런타임</td><td>Java 21</td><td>Record, Pattern Matching 활용</td></tr>
+                <tr><td>프레임워크</td><td>Spring Boot 4.0.5</td><td>Spring Web MVC, Spring Data JPA</td></tr>
+                <tr><td>데이터베이스</td><td>MySQL 8.x</td><td>공간 인덱스, ST_Distance_Sphere</td></tr>
+                <tr><td>ORM</td><td>Spring Data JPA / Hibernate</td><td>인터페이스 Projection, JPQL 집계</td></tr>
+                <tr><td>인증</td><td>JWT (jjwt 0.12.6)</td><td>HMAC-SHA, Bearer Token</td></tr>
+                <tr><td>파일 스토리지</td><td>AWS S3 SDK v2</td><td>Presigned PUT URL</td></tr>
+                <tr><td>빌드</td><td>Gradle (Groovy DSL)</td><td></td></tr>
+                <tr><td>API 문서</td><td>SpringDoc OpenAPI 2.8.6</td><td></td></tr>
+                <tr><td>테스트</td><td>JUnit 5 + Mockito + AssertJ</td><td></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- 아키텍처 -->
+    <section id="architecture">
+        <div class="section-header">
+            <span class="section-icon">🏛️</span>
+            <h2>아키텍처</h2>
+        </div>
+        <h3>패키지 구조 (도메인 기반)</h3>
+        <pre><code>com.flover.flover_be
+├── user/
+│   ├── controller/   AuthController, UserController
+│   ├── service/      UserService, KakaoAuthService, AppleAuthService, ProfileImageStorageService
+│   ├── repository/   UserRepository
+│   ├── domain/       User (Entity), OAuthProvider (enum), UserTitle (enum)
+│   ├── exception/    AuthErrorCode, UserErrorCode, AuthException, KakaoAuthException, AppleAuthException
+│   └── dto/          LoginRequest/Response, UserDto, ...
+├── plogging/
+│   ├── controller/   PloggingController, PloggingAnalysisController
+│   ├── service/      PloggingService, PloggingStorageService, PloggingAnalysisService
+│   ├── repository/   PloggingSessionRepository, PloggingPhotoRepository, ...
+│   ├── domain/       PloggingSession, PloggingPhoto, PloggingRoutePoint, TrashDetection
+│   ├── exception/    PloggingErrorCode
+│   └── dto/          PloggingDto, AiResponseDto
+├── facility/
+│   ├── controller/   FacilityController
+│   ├── service/      FacilityService
+│   ├── repository/   TrashBinRepository, ToiletRepository
+│   └── dto/          FacilityDto
+├── route/
+│   ├── controller/   RouteController
+│   ├── client/       RouteEngineClient
+│   └── dto/          RouteDto
+└── global/
+    ├── auth/         JwtAuthenticationFilter, LoginUserIdArgumentResolver, @LoginUserId
+    ├── jwt/          JwtProvider
+    ├── storage/      S3StorageService, AwsS3Config
+    ├── exception/    ErrorCode (interface), CommonErrorCode, BusinessException, GlobalExceptionHandler
+    ├── response/     ErrorResponse
+    └── config/       WebConfig, RestClientConfig, AsyncConfig</code></pre>
+
+        <h3>요청 처리 흐름</h3>
+        <pre><code>HTTP Request
+  → JwtAuthenticationFilter   (토큰 검증, userId → request.setAttribute)
+  → Controller                (@LoginUserId Long userId 자동 주입)
+  → Service                   (비즈니스 로직)
+  → Repository                (DB 조회 / 저장)
+  → DTO 변환 후 응답
+
+에러 발생 시:
+  BusinessException → GlobalExceptionHandler → ErrorResponse { status, message }</code></pre>
+    </section>
+
+    <!-- OAuth -->
+    <section id="oauth">
+        <div class="section-header">
+            <span class="section-icon">🔑</span>
+            <h2>OAuth 소셜 로그인</h2>
+        </div>
+
+        <h3>카카오 로그인 (Authorization Code Flow)</h3>
+        <div class="flow">
+            <div class="flow-step">
+                <div class="flow-num">1</div>
+                <div class="flow-content">
+                    <h4>인증 코드 수신</h4>
+                    <p>클라이언트가 카카오 로그인 후 받은 <span class="inline-code">code</span>를 <span class="inline-code">POST /api/auth/kakao/login</span>으로 전달</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">2</div>
+                <div class="flow-content">
+                    <h4>액세스 토큰 교환</h4>
+                    <p><span class="inline-code">https://kauth.kakao.com/oauth/token</span>에 code 전송 → Kakao Access Token 획득</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">3</div>
+                <div class="flow-content">
+                    <h4>사용자 정보 조회</h4>
+                    <p><span class="inline-code">https://kapi.kakao.com/v2/user/me</span>로 이메일, 닉네임, 프로필 이미지 조회</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">4</div>
+                <div class="flow-content">
+                    <h4>Upsert</h4>
+                    <p><span class="inline-code">provider=KAKAO, providerId=카카오ID</span>로 조회 → 없으면 신규 가입, 있으면 기존 반환</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">5</div>
+                <div class="flow-content">
+                    <h4>JWT 발급</h4>
+                    <p><span class="inline-code">LoginResponse { accessToken, tokenType, userId, nickname, email }</span> 반환</p>
+                </div>
+            </div>
+        </div>
+
+        <h3>Apple 로그인 (JWKS 서명 검증)</h3>
+        <div class="flow">
+            <div class="flow-step">
+                <div class="flow-num">1</div>
+                <div class="flow-content">
+                    <h4>identityToken 수신</h4>
+                    <p>클라이언트가 Apple 로그인 후 받은 <span class="inline-code">identityToken</span> (JWT)을 전달</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">2</div>
+                <div class="flow-content">
+                    <h4>JWKS 공개키 페칭</h4>
+                    <p><span class="inline-code">https://appleid.apple.com/auth/keys</span>에서 공개키 목록 조회, <span class="inline-code">kid</span>로 매칭</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">3</div>
+                <div class="flow-content">
+                    <h4>RSA 서명 검증</h4>
+                    <p>공개키로 identityToken의 서명 검증 (위변조 방지)</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">4</div>
+                <div class="flow-content">
+                    <h4>Claims 검증</h4>
+                    <p><span class="inline-code">iss</span> (appleid.apple.com), <span class="inline-code">aud</span> (clientId), <span class="inline-code">sub</span> (Apple User ID) 유효성 확인</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">5</div>
+                <div class="flow-content">
+                    <h4>Upsert → JWT 발급</h4>
+                    <p><span class="inline-code">provider=APPLE, providerId=sub</span>로 사용자 조회/생성 후 JWT 반환</p>
+                </div>
+            </div>
+        </div>
+
+        <h3>멀티 OAuth Provider 설계</h3>
+        <div class="highlight-box">
+            <strong>핵심:</strong> <span class="inline-code">provider + provider_id</span>의 복합 유니크 제약으로 동일 숫자 ID가 Kakao와 Apple에 각각 존재할 수 있습니다.
+            기존 <span class="inline-code">kakao_id (BIGINT, UNIQUE)</span> 단일 컬럼에서 <span class="inline-code">provider (VARCHAR) + provider_id (VARCHAR)</span> 조합으로 마이그레이션했습니다.
+        </div>
+        <pre><code>-- DB 유니크 제약 (마이그레이션)
+ALTER TABLE users ADD UNIQUE KEY uk_provider_provider_id (provider, provider_id);
+
+-- Entity
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"provider", "provider_id"}))
+public class User {
+    @Enumerated(EnumType.STRING)
+    @Column(name = "provider", nullable = false, length = 20)
+    private OAuthProvider provider;   // KAKAO | APPLE | GOOGLE
+
+    @Column(name = "provider_id", nullable = false)
+    private String providerId;
+}</code></pre>
+    </section>
+
+    <!-- JWT -->
+    <section id="jwt">
+        <div class="section-header">
+            <span class="section-icon">🛡️</span>
+            <h2>JWT 인증</h2>
+        </div>
+
+        <h3>토큰 생성 · 검증 (JwtProvider)</h3>
+        <pre><code>// 생성: userId를 subject로
+String token = Jwts.builder()
+    .subject(String.valueOf(userId))
+    .issuedAt(new Date())
+    .expiration(new Date(System.currentTimeMillis() + expiration))
+    .signWith(secretKey)   // HMAC-SHA
+    .compact();
+
+// 검증
+Claims claims = Jwts.parser()
+    .verifyWith(secretKey)
+    .build()
+    .parseSignedClaims(token)
+    .getPayload();</code></pre>
+
+        <h3>필터 기반 인증 (JwtAuthenticationFilter)</h3>
+        <pre><code>// OncePerRequestFilter 구현 (Spring Security 없이)
+protected void doFilterInternal(HttpServletRequest request, ...) {
+    String token = extractBearer(request);   // "Authorization: Bearer ..."
+
+    if (token == null) { chain.doFilter(...); return; }
+
+    if (!jwtProvider.isValid(token)) {
+        sendUnauthorized(response, INVALID_TOKEN);
+        return;
+    }
+
+    Long userId = jwtProvider.getUserId(token);
+    request.setAttribute("userId", userId);  // Controller로 전달
+    chain.doFilter(...);
+}</code></pre>
+
+        <h3>커스텀 어노테이션으로 userId 주입 (@LoginUserId)</h3>
+        <pre><code>// HandlerMethodArgumentResolver 구현
+// request.getAttribute("userId") → @LoginUserId Long userId로 자동 바인딩
+@GetMapping("/me")
+public UserDto.Response getMyInfo(@LoginUserId Long userId) {
+    return userService.findUserInfo(userId);
+}</code></pre>
+    </section>
+
+    <!-- S3 -->
+    <section id="s3">
+        <div class="section-header">
+            <span class="section-icon">☁️</span>
+            <h2>S3 파일 업로드 (Presigned URL)</h2>
+        </div>
+
+        <div class="highlight-box">
+            <strong>서버가 파일을 직접 받지 않습니다.</strong> 클라이언트가 S3에 직접 PUT 업로드하고, 서버는 URL만 DB에 저장합니다.
+            서버 메모리·네트워크 부하를 줄이는 핵심 설계입니다.
+        </div>
+
+        <div class="flow">
+            <div class="flow-step">
+                <div class="flow-num">1</div>
+                <div class="flow-content">
+                    <h4>Presigned URL 발급 요청</h4>
+                    <p><span class="inline-code">GET /api/users/me/profile-image/upload-url?contentType=image/png</span></p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">2</div>
+                <div class="flow-content">
+                    <h4>서버 → S3 서명</h4>
+                    <p>S3Presigner로 10분 유효 PUT URL 생성. Content-Type이 서명에 고정되어 다른 타입 업로드 불가.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">3</div>
+                <div class="flow-content">
+                    <h4>응답</h4>
+                    <p><span class="inline-code">{ uploadUrl, objectUrl }</span> 반환</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">4</div>
+                <div class="flow-content">
+                    <h4>클라이언트 → S3 직접 업로드</h4>
+                    <p><span class="inline-code">PUT {uploadUrl}</span> with 파일 바이너리</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">5</div>
+                <div class="flow-content">
+                    <h4>URL 저장</h4>
+                    <p><span class="inline-code">PUT /api/users/me/profile-image { imageUrl }</span> → DB 저장 + 이전 이미지 S3에서 삭제</p>
+                </div>
+            </div>
+        </div>
+
+        <pre><code>// 허용 이미지 타입 화이트리스트
+private static final Set&lt;String&gt; ALLOWED = Set.of(
+    "image/jpeg", "image/png", "image/webp",
+    "image/heic", "image/heif", "image/avif"
+);
+
+// Presigned PUT URL 생성 (AWS SDK v2)
+PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+    .signatureDuration(Duration.ofMinutes(10))
+    .putObjectRequest(r -> r
+        .bucket(bucket)
+        .key(objectKey)
+        .contentType(contentType))   // Content-Type 고정 서명
+    .build();
+
+// 기존 이미지 삭제 (버킷 소유 확인 후, 실패 시 예외 전파 안 함)
+void deleteIfOwnedByBucket(String imageUrl) { ... }</code></pre>
+    </section>
+
+    <!-- Plogging -->
+    <section id="plogging">
+        <div class="section-header">
+            <span class="section-icon">🏃</span>
+            <h2>플로깅 도메인</h2>
+        </div>
+
+        <h3>레벨 · 경험치 · 칭호 시스템</h3>
+        <pre><code>// User.java — 도메인 로직을 엔티티에 캡슐화
+private static final long EXP_GRANT_INTERVAL_SECONDS = 5L;    // 5초마다 1경험치
+private static final long EXPERIENCE_PER_LEVEL = 720L;         // 1레벨 = 720exp (1시간)
+
+public void addPloggingTimeSeconds(long seconds) {
+    this.totalPloggingSeconds += seconds;
+    this.experience = (totalPloggingSeconds / EXP_GRANT_INTERVAL_SECONDS);
+    this.level = (int)(experience / EXPERIENCE_PER_LEVEL) + 1;
+    this.title = UserTitle.of(this.level);   // 레벨 기반 칭호 자동 부여
+}</code></pre>
+
+        <h3>플로깅 완료 저장 — sequence 부여</h3>
+        <pre><code>// PloggingService.complete()
+PloggingSession session = PloggingSession.create(user, request);
+ploggingSessionRepository.save(session);
+
+// RoutePoint와 Photo에 순서 보장
+for (int i = 0; i &lt; request.routePoints().size(); i++) {
+    PloggingRoutePoint.create(session, request.routePoints().get(i), i);
+}
+for (int i = 0; i &lt; request.photoUrls().size(); i++) {
+    PloggingPhoto.create(session, request.photoUrls().get(i), i);
+}
+
+// 사용자 경험치·레벨·칭호 갱신
+user.addPloggingTimeSeconds(request.ploggingSeconds());</code></pre>
+
+        <h3>JPQL 집계 쿼리 + 인터페이스 Projection</h3>
+        <pre><code>// 단일 쿼리로 여러 집계값 한 번에 조회
+@Query("""
+    SELECT COUNT(p) AS count,
+           COALESCE(SUM(p.stepCount), 0) AS totalStepCount,
+           COALESCE(SUM(p.distanceMeters), 0) AS totalDistanceMeters
+    FROM PloggingSession p WHERE p.user.id = :userId
+""")
+PloggingStatsView findStatsByUserId(@Param("userId") Long userId);
+
+// Repository 내부 중첩 인터페이스 Projection
+interface PloggingStatsView {
+    long getCount();
+    long getTotalStepCount();
+    long getTotalDistanceMeters();
+}</code></pre>
+
+        <h3>주간 통계 — 기록 없는 날 0 채우기</h3>
+        <pre><code>// DB 결과를 날짜 Map으로 변환 후 7일치 순회
+Map&lt;LocalDate, SessionAggregate&gt; byDate = sessions.stream()
+    .collect(groupingBy(s -> s.getStartedAt().toLocalDate(), ...));
+
+return IntStream.range(0, 7)
+    .mapToObj(i -> startDate.plusDays(i))
+    .map(date -> DailyStatsResponse.from(date, byDate.getOrDefault(date, EMPTY)))
+    .toList();</code></pre>
+
+        <h3>private record로 단일 루프 다중 필드 집계</h3>
+        <pre><code>// 필드마다 스트림을 별도로 순회하는 안티패턴을 방지
+private record SessionAggregate(long stepCount, long distanceMeters, long caloriesBurned, long ploggingSeconds) {
+    static SessionAggregate from(List&lt;SessionStatsView&gt; sessions) {
+        long step = 0, dist = 0, cal = 0, sec = 0;
+        for (SessionStatsView s : sessions) {
+            step += s.getStepCount();
+            dist += s.getDistanceMeters();
+            cal  += s.getCaloriesBurned();
+            sec  += s.getPloggingSeconds();
+        }
+        return new SessionAggregate(step, dist, cal, sec);
+    }
+}</code></pre>
+
+        <h3>Slice 기반 페이징 (COUNT 쿼리 제거)</h3>
+        <pre><code>// Page 대신 Slice: 전체 COUNT 쿼리 없음 → 성능 유리
+Slice&lt;PloggingSession&gt; findAllByUserIdOrderByStartedAtDesc(Long userId, Pageable pageable);
+
+// hasNext()로 다음 페이지 존재 여부만 확인
+// Response: { sessions: [...], hasNext: true/false }</code></pre>
+    </section>
+
+    <!-- Facility -->
+    <section id="facility">
+        <div class="section-header">
+            <span class="section-icon">🗑️</span>
+            <h2>주변 시설 검색</h2>
+        </div>
+
+        <h3>MySQL 공간 함수 기반 반경 검색</h3>
+        <pre><code>-- Native Query (ST_Distance_Sphere)
+SELECT id, name, road_address, latitude, longitude, trash_type,
+       ST_Distance_Sphere(POINT(longitude, latitude), POINT(:lng, :lat)) AS distance
+FROM trash_bins
+WHERE ST_Distance_Sphere(POINT(longitude, latitude), POINT(:lng, :lat)) &lt;= 1000
+ORDER BY distance ASC</code></pre>
+
+        <div class="highlight-box">
+            <strong>ST_Distance_Sphere</strong>는 지구를 구로 근사하여 두 좌표 간 거리(미터)를 계산합니다.
+            반경 1km 시설 검색처럼 높은 정밀도보다 속도가 중요한 경우에 적합합니다.
+            (latitude, longitude)에 공간 인덱스를 걸면 반경 조건 필터링 성능이 향상됩니다.
+        </div>
+    </section>
+
+    <!-- Route -->
+    <section id="route">
+        <div class="section-header">
+            <span class="section-icon">🗺️</span>
+            <h2>경로 추천</h2>
+        </div>
+
+        <h3>외부 라우팅 엔진 연동 + 재시도 로직</h3>
+        <pre><code>// RouteEngineClient: 3회 재시도, 타임아웃 설정
+HttpClient client = HttpClient.newBuilder()
+    .connectTimeout(Duration.ofSeconds(5))
+    .build();
+
+// 500번대 응답 또는 연결 오류 시 재시도 (최대 3회)
+for (int attempt = 0; attempt &lt; 3; attempt++) {
+    try {
+        HttpResponse&lt;String&gt; response = client.send(request, ...);
+        if (response.statusCode() &lt; 500) return parse(response);
+    } catch (IOException e) {
+        if (attempt == 2) throw new RouteException(ROUTE_ENGINE_CONNECTION_FAILED);
+    }
+}
+
+// 요청: lat, lon, time(분) → 거리 계산 (분당 5km 기준)
+// 응답: { distanceMeter, timeMillis, encodedPath }</code></pre>
+    </section>
+
+    <!-- 예외 처리 -->
+    <section id="exception">
+        <div class="section-header">
+            <span class="section-icon">🚨</span>
+            <h2>예외 처리 구조</h2>
+        </div>
+
+        <pre><code>// 1. ErrorCode 인터페이스 (global/exception/)
+public interface ErrorCode {
+    HttpStatus getStatus();
+    String getMessage();
+}
+
+// 2. 공통 에러코드
+public enum CommonErrorCode implements ErrorCode {
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다."),
+    INVALID_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 형식입니다.");
+}
+
+// 3. 도메인 에러코드 (각 도메인의 exception/ 패키지)
+public enum UserErrorCode implements ErrorCode {
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다."),
+    NICKNAME_ALREADY_USED(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다.");
+}
+
+// 4. BusinessException (global) — ErrorCode를 포함
+public class BusinessException extends RuntimeException {
+    private final ErrorCode errorCode;
+}
+
+// 5. 도메인 예외 — BusinessException 상속
+public class UserException extends BusinessException {
+    public UserException(ErrorCode errorCode) { super(errorCode); }
+}
+
+// 6. GlobalExceptionHandler (@RestControllerAdvice)
+@ExceptionHandler(BusinessException.class)
+public ResponseEntity&lt;ErrorResponse&gt; handle(BusinessException e) {
+    ErrorCode code = e.getErrorCode();
+    return ResponseEntity.status(code.getStatus())
+        .body(new ErrorResponse(code.getStatus().value(), code.getMessage()));
+}</code></pre>
+
+        <div class="highlight-box">
+            <strong>핵심 원칙:</strong> 표준 Java 예외(<span class="inline-code">IllegalArgumentException</span> 등)를 도메인 로직에서 직접 던지지 않습니다.
+            모든 예외는 <span class="inline-code">BusinessException</span> 서브클래스로 통일되어 <span class="inline-code">GlobalExceptionHandler</span> 한 곳에서 처리됩니다.
+        </div>
+    </section>
+
+    <!-- 비동기 -->
+    <section id="async">
+        <div class="section-header">
+            <span class="section-icon">⚡</span>
+            <h2>비동기 처리 — AI 이미지 분석</h2>
+        </div>
+
+        <pre><code>// AsyncConfig.java — 전용 ThreadPool 정의
+@Bean("aiAnalysisExecutor")
+public Executor aiAnalysisExecutor() {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setCorePoolSize(2);
+    executor.setMaxPoolSize(5);
+    executor.setQueueCapacity(100);
+    executor.setThreadNamePrefix("ai-analysis-");
+    executor.setAwaitTerminationSeconds(60);
+    executor.initialize();
+    return executor;
+}
+
+// PloggingAnalysisService.java
+@Async("aiAnalysisExecutor")
+public CompletableFuture&lt;Void&gt; analyze(MultipartFile image, Long sessionId) {
+    // AI 서버에 multipart/form-data로 이미지 전송
+    // 응답 파싱 → TrashDetection 저장
+    // 네트워크 오류 → 로깅 후 graceful 처리 (예외 전파 안 함)
+}</code></pre>
+
+        <div class="highlight-box">
+            <strong>이유:</strong> AI 분석은 외부 서버 호출로 수 초가 걸리는 I/O 작업입니다.
+            <span class="inline-code">@Async</span>로 별도 스레드풀에서 처리하면 클라이언트는 플로깅 완료 응답을 즉시 받고,
+            분석은 백그라운드에서 진행됩니다.
+        </div>
+    </section>
+
+    <!-- API -->
+    <section id="api">
+        <div class="section-header">
+            <span class="section-icon">📡</span>
+            <h2>API 엔드포인트</h2>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Method</th><th>Endpoint</th><th>인증</th><th>설명</th></tr></thead>
+                <tbody>
+                <tr><td><span class="method-post">POST</span></td><td>/api/auth/kakao/login</td><td><span class="badge badge-open">공개</span></td><td>카카오 소셜 로그인</td></tr>
+                <tr><td><span class="method-post">POST</span></td><td>/api/auth/apple/login</td><td><span class="badge badge-open">공개</span></td><td>Apple 소셜 로그인</td></tr>
+                <tr><td><span class="method-get">GET</span></td><td>/api/users/me</td><td><span class="badge badge-auth">인증</span></td><td>내 정보 조회</td></tr>
+                <tr><td><span class="method-get">GET</span></td><td>/api/users/me/plogging-stats</td><td><span class="badge badge-auth">인증</span></td><td>누적 플로깅 통계</td></tr>
+                <tr><td><span class="method-put">PUT</span></td><td>/api/users/me/nickname</td><td><span class="badge badge-auth">인증</span></td><td>닉네임 변경</td></tr>
+                <tr><td><span class="method-get">GET</span></td><td>/api/users/me/profile-image/upload-url</td><td><span class="badge badge-auth">인증</span></td><td>프로필 이미지 Presigned URL 발급</td></tr>
+                <tr><td><span class="method-put">PUT</span></td><td>/api/users/me/profile-image</td><td><span class="badge badge-auth">인증</span></td><td>프로필 이미지 URL 저장</td></tr>
+                <tr><td><span class="method-get">GET</span></td><td>/api/plogging-sessions</td><td><span class="badge badge-auth">인증</span></td><td>플로깅 기록 목록 (Slice 페이징)</td></tr>
+                <tr><td><span class="method-get">GET</span></td><td>/api/plogging-sessions/{id}</td><td><span class="badge badge-auth">인증</span></td><td>플로깅 기록 상세</td></tr>
+                <tr><td><span class="method-post">POST</span></td><td>/api/plogging-sessions/complete</td><td><span class="badge badge-auth">인증</span></td><td>플로깅 완료 기록</td></tr>
+                <tr><td><span class="method-get">GET</span></td><td>/api/plogging-sessions/monthly</td><td><span class="badge badge-auth">인증</span></td><td>월간 통계</td></tr>
+                <tr><td><span class="method-get">GET</span></td><td>/api/plogging-sessions/weekly</td><td><span class="badge badge-auth">인증</span></td><td>주간 통계 (7일, 빈 날 0 처리)</td></tr>
+                <tr><td><span class="method-get">GET</span></td><td>/api/plogging-sessions/map-image/upload-url</td><td><span class="badge badge-auth">인증</span></td><td>지도 이미지 Presigned URL</td></tr>
+                <tr><td><span class="method-get">GET</span></td><td>/api/plogging-sessions/photo/upload-url</td><td><span class="badge badge-auth">인증</span></td><td>인증샷 Presigned URL</td></tr>
+                <tr><td><span class="method-post">POST</span></td><td>/api/plogging/analyze</td><td><span class="badge badge-open">공개</span></td><td>AI 이미지 분석 (비동기)</td></tr>
+                <tr><td><span class="method-get">GET</span></td><td>/api/v1/routes</td><td><span class="badge badge-open">공개</span></td><td>경로 추천</td></tr>
+                <tr><td><span class="method-get">GET</span></td><td>/api/facilities/trash-bins</td><td><span class="badge badge-open">공개</span></td><td>반경 1km 쓰레기통 (거리순)</td></tr>
+                <tr><td><span class="method-get">GET</span></td><td>/api/facilities/toilets</td><td><span class="badge badge-open">공개</span></td><td>반경 1km 화장실 (거리순)</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- DB -->
+    <section id="db">
+        <div class="section-header">
+            <span class="section-icon">🗄️</span>
+            <h2>DB 스키마 핵심 포인트</h2>
+        </div>
+
+        <h3>users 테이블</h3>
+        <pre><code>CREATE TABLE users (
+    id                     BIGINT AUTO_INCREMENT PRIMARY KEY,
+    provider               VARCHAR(20)  NOT NULL,         -- KAKAO | APPLE | GOOGLE
+    provider_id            VARCHAR(255) NOT NULL,         -- OAuth 제공자의 사용자 ID
+    email                  VARCHAR(255),
+    nickname               VARCHAR(255),
+    profile_image_url      VARCHAR(255),
+    level                  INT          NOT NULL DEFAULT 1,
+    experience             BIGINT       NOT NULL DEFAULT 0,
+    title                  ENUM(...)    NOT NULL,
+    total_plogging_seconds BIGINT       NOT NULL DEFAULT 0,
+    created_at             DATETIME(6),
+
+    UNIQUE KEY uk_provider_provider_id (provider, provider_id)
+    -- 카카오 ID 12345 != 애플 ID 12345 → 복합 유니크로 구분
+);</code></pre>
+
+        <h3>공간 인덱스 (시설 검색)</h3>
+        <pre><code>-- ST_Distance_Sphere 함수로 반경 1000m 이내 조회
+-- (latitude, longitude) 컬럼에 공간 인덱스 설정 시 성능 향상
+SELECT *, ST_Distance_Sphere(POINT(lng, lat), POINT(:lng, :lat)) AS distance
+FROM trash_bins
+WHERE ST_Distance_Sphere(POINT(lng, lat), POINT(:lng, :lat)) &lt;= 1000
+ORDER BY distance ASC;</code></pre>
+
+        <h3>JPA DDL 설정</h3>
+        <pre><code>spring.jpa.hibernate.ddl-auto=update   # 개발: 스키마 자동 반영
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect</code></pre>
+    </section>
+
+    <!-- 면접 -->
+    <section id="interview">
+        <div class="section-header">
+            <span class="section-icon">🎤</span>
+            <h2>면접 예상 질문 &amp; 답변</h2>
+        </div>
+
+        <div class="qa-list">
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>카카오와 Apple 로그인의 구현 방식 차이는?</div>
+                <div class="qa-a">
+                    <strong>카카오</strong>는 Authorization Code Flow입니다. 클라이언트에서 받은 code로 서버가 카카오 토큰 서버에 액세스 토큰을 요청하고, 그 토큰으로 사용자 정보 API를 호출합니다.<br><br>
+                    <strong>Apple</strong>은 identityToken(JWT) 검증 방식입니다. Apple의 JWKS 엔드포인트에서 공개키를 가져와 identityToken의 RSA 서명을 검증하고, Claims의 iss/aud/sub를 확인합니다. 카카오처럼 추가 API를 호출하지 않고 토큰 자체에서 사용자 정보를 추출합니다.
+                </div>
+            </div>
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>provider + provider_id 복합 유니크를 쓴 이유는?</div>
+                <div class="qa-a">
+                    카카오 사용자 ID 12345와 Apple 사용자 ID 12345는 완전히 다른 사람입니다. provider_id만 단독으로 UNIQUE를 걸면 두 사람 중 한 명이 가입할 수 없습니다. <strong>(provider, provider_id) 복합 유니크</strong>로 제공자별로 사용자를 구분하면 Kakao·Apple·Google이 각각 독립적인 ID 공간을 가질 수 있습니다.
+                </div>
+            </div>
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>JWT를 Spring Security 없이 구현한 방법은?</div>
+                <div class="qa-a">
+                    <strong>OncePerRequestFilter</strong>를 직접 구현한 <code>JwtAuthenticationFilter</code>가 Authorization 헤더에서 토큰을 추출·검증하고, 유효한 경우 <code>request.setAttribute("userId", userId)</code>로 저장합니다. Controller에서는 <strong>HandlerMethodArgumentResolver</strong>를 구현한 <code>LoginUserIdArgumentResolver</code>가 <code>@LoginUserId</code> 어노테이션을 감지해 request attribute에서 userId를 꺼내 주입합니다.
+                </div>
+            </div>
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>S3에 파일을 직접 받지 않고 Presigned URL을 쓰는 이유는?</div>
+                <div class="qa-a">
+                    서버가 파일을 받으면 <strong>대용량 파일이 서버 메모리와 네트워크를 점유</strong>합니다. Presigned URL 방식은 서버가 S3에 서명된 임시 URL을 발급하고, 클라이언트가 그 URL로 S3에 직접 PUT 업로드합니다. 서버는 URL 발급과 DB 저장만 처리하므로 서버 부하를 줄이고 S3 대역폭을 직접 활용합니다. URL은 10분 유효하며 Content-Type이 서명에 고정돼 다른 파일 타입 업로드가 불가합니다.
+                </div>
+            </div>
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>Page 대신 Slice를 쓴 이유는?</div>
+                <div class="qa-a">
+                    <code>Page</code>는 전체 레코드 수를 위한 <strong>COUNT 쿼리를 추가로 실행</strong>합니다. 플로깅 기록 목록처럼 "다음 페이지 있음/없음"만 필요한 경우엔 COUNT가 불필요한 비용입니다. <code>Slice</code>는 <code>hasNext()</code>만 제공하고 COUNT를 실행하지 않아 성능상 유리합니다.
+                </div>
+            </div>
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>JPQL 집계 쿼리에서 인터페이스 Projection을 쓴 이유는?</div>
+                <div class="qa-a">
+                    엔티티 전체를 로드하면 불필요한 컬럼까지 DB에서 가져와 메모리를 낭비합니다. <strong>인터페이스 기반 Projection</strong>은 필요한 집계 필드만 선언하면 JPA가 SELECT 절을 해당 필드로 한정합니다. Repository 내부 중첩 인터페이스로 선언해 응집도를 높였습니다. <code>SUM</code>이 레코드 없을 때 null을 반환하므로 <code>COALESCE</code>로 0 처리했습니다.
+                </div>
+            </div>
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>AI 분석을 @Async로 처리한 이유는?</div>
+                <div class="qa-a">
+                    AI 이미지 분석은 외부 서버 호출로 수 초가 소요됩니다. 동기로 처리하면 클라이언트가 그만큼 대기해야 합니다. <code>@Async("aiAnalysisExecutor")</code>로 별도 스레드풀에서 비동기 실행하면 플로깅 완료 응답을 즉시 반환하고, 분석은 백그라운드에서 처리됩니다. ThreadPoolTaskExecutor를 직접 정의해 코어 2개, 최대 5개, 큐 100으로 제어했습니다.
+                </div>
+            </div>
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>예외 처리를 ErrorCode 인터페이스 + BusinessException 구조로 설계한 이유는?</div>
+                <div class="qa-a">
+                    <code>IllegalArgumentException</code> 같은 표준 예외를 직접 던지면 GlobalExceptionHandler에서 HTTP 상태 코드와 메시지를 구분할 수 없습니다. <strong>ErrorCode 인터페이스</strong>에 <code>getStatus()</code>와 <code>getMessage()</code>를 정의하고 도메인별 enum이 구현합니다. <code>BusinessException</code>이 ErrorCode를 포함하면 GlobalExceptionHandler 한 곳에서 모든 도메인 예외를 일관되게 처리할 수 있습니다.
+                </div>
+            </div>
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>ST_Distance_Sphere를 쓴 이유와 한계는?</div>
+                <div class="qa-a">
+                    MySQL 내장 공간 함수로 두 좌표 간 거리를 미터 단위로 계산합니다. 지구를 <strong>완전한 구로 근사</strong>하기 때문에 정확도는 0.5% 내외입니다. 반경 1km 시설 검색처럼 정밀도보다 속도가 중요한 경우에 적합합니다. 한계는 지구가 타원체이므로 장거리에서 오차가 커진다는 점이며, 더 정밀한 거리가 필요하면 Haversine 공식이나 PostGIS를 고려해야 합니다.
+                </div>
+            </div>
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>생성자 주입만 사용하는 이유는?</div>
+                <div class="qa-a">
+                    필드 주입(<code>@Autowired</code>)은 리플렉션으로 주입되므로 테스트 시 Mock 주입이 어렵고, 의존성이 외부에 보이지 않습니다. <strong>생성자 주입</strong>은 의존성이 명시적이고 final 선언이 가능하며, 테스트에서 new로 직접 생성할 수 있습니다. 순환 의존성도 컴파일 타임에 감지됩니다. Lombok의 <code>@RequiredArgsConstructor</code>로 보일러플레이트를 제거했습니다.
+                </div>
+            </div>
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>DTO에 Java Record를 사용한 이유는?</div>
+                <div class="qa-a">
+                    Java 16+ Record는 <strong>불변 데이터 클래스</strong>를 간결하게 선언합니다. equals, hashCode, toString, 생성자가 자동 생성됩니다. DTO는 데이터 전송 목적의 단순 구조체라 가변 상태가 필요 없어 Record가 이상적입니다. Outer class + Inner Record 패턴으로 관련 Request/Response DTO를 그룹핑해 응집도를 높였습니다.
+                </div>
+            </div>
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>엔티티에 setter를 두지 않고 도메인 메서드를 쓴 이유는?</div>
+                <div class="qa-a">
+                    public setter는 어디서든 엔티티 상태를 변경할 수 있어 <strong>일관성을 보장하기 어렵습니다</strong>. 예를 들어 플로깅 시간이 추가될 때 단순히 <code>setTotalPloggingSeconds()</code>로 값을 바꾸면 경험치와 레벨·칭호 갱신을 빠뜨릴 수 있습니다. <code>addPloggingTimeSeconds()</code> 같은 도메인 메서드는 연관된 모든 상태 변경을 한 곳에서 처리하므로 불변식을 보장합니다.
+                </div>
+            </div>
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>Filter와 Interceptor의 차이는? 언제 각각을 쓰나요?</div>
+                <div class="qa-a">
+                    <strong>Filter</strong>는 Servlet 레벨에서 동작합니다. Spring 컨텍스트 밖에 위치해 어느 Controller로 가는 요청인지 알 수 없고, 모든 요청에 적용됩니다. JWT 검증, CORS 처리처럼 Spring과 무관하게 전처리해야 하는 작업에 적합합니다.<br><br>
+                    <strong>Interceptor</strong>는 DispatcherServlet 이후 Spring MVC 레벨에서 동작합니다. 어느 Controller, 어느 메서드로 가는 요청인지 알 수 있고 <code>preHandle / postHandle / afterCompletion</code> 3단계를 제공합니다. 특정 URL 패턴에만 다른 인증을 적용하거나 (예: <code>/admin/**</code> 관리자 권한 체크), API 응답 시간 측정처럼 <strong>Spring 컨텍스트 정보가 필요한 횡단 관심사</strong>에 적합합니다.<br><br>
+                    이 프로젝트에서 JWT 검증을 Filter로 구현한 이유는 Spring과 무관하게 모든 요청에 먼저 적용해야 하고, <code>filterChain.doFilter(request, ...)</code>로 동일한 request 객체를 다음 단계로 전달해 <code>request.setAttribute("userId", ...)</code>가 Controller까지 살아있기 때문입니다.
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+</main>
+
+<script>
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.nav a');
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                navLinks.forEach(a => a.classList.remove('active'));
+                const active = document.querySelector(`.nav a[href="#${entry.target.id}"]`);
+                if (active) active.classList.add('active');
+            }
+        });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+
+    sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

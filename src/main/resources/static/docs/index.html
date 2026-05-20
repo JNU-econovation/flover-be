@@ -1,110 +1,110 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>flover-be — AI 가이드</title>
-  <style>
-    :root {
-      --bg: #0d1117; --surface: #161b22; --border: #30363d;
-      --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
-      --green: #3fb950; --yellow: #d29922; --purple: #bc8cff;
-      --code-bg: #1f2937;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Noto Sans KR, sans-serif;
-      background: var(--bg); color: var(--text); line-height: 1.7; padding: 3rem 1rem;
-    }
-    .container { max-width: 860px; margin: 0 auto; }
-    header { text-align: center; margin-bottom: 3rem; }
-    header h1 { font-size: 2rem; color: var(--accent); letter-spacing: -0.5px; }
-    header p { color: var(--muted); margin-top: 0.5rem; font-size: 0.95rem; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    a.card {
-      display: block; background: var(--surface); border: 1px solid var(--border);
-      border-radius: 12px; padding: 1.5rem; text-decoration: none;
-      transition: border-color 0.15s, transform 0.1s;
-    }
-    a.card:hover { border-color: var(--accent); transform: translateY(-2px); }
-    a.card.featured { grid-column: 1 / -1; border-color: #1f3a5f; }
-    a.card.featured:hover { border-color: var(--accent); }
-    .card-icon { font-size: 1.8rem; margin-bottom: 0.75rem; }
-    .card h2 { font-size: 1.05rem; color: var(--text); margin-bottom: 0.35rem; }
-    .card p { font-size: 0.85rem; color: var(--muted); line-height: 1.5; }
-    .card .tags { margin-top: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
-    .tag { background: var(--code-bg); border-radius: 4px; padding: 0.15em 0.5em; font-size: 0.75rem; font-family: "JetBrains Mono", Consolas, monospace; color: var(--muted); }
-    footer { text-align: center; margin-top: 3rem; color: var(--muted); font-size: 0.8rem; }
-    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } a.card.featured { grid-column: auto; } }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>flover-be — AI 가이드</title>
+    <style>
+        :root {
+            --bg: #0d1117; --surface: #161b22; --border: #30363d;
+            --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+            --green: #3fb950; --yellow: #d29922; --purple: #bc8cff;
+            --code-bg: #1f2937;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Noto Sans KR, sans-serif;
+            background: var(--bg); color: var(--text); line-height: 1.7; padding: 3rem 1rem;
+        }
+        .container { max-width: 860px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 3rem; }
+        header h1 { font-size: 2rem; color: var(--accent); letter-spacing: -0.5px; }
+        header p { color: var(--muted); margin-top: 0.5rem; font-size: 0.95rem; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        a.card {
+            display: block; background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; padding: 1.5rem; text-decoration: none;
+            transition: border-color 0.15s, transform 0.1s;
+        }
+        a.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        a.card.featured { grid-column: 1 / -1; border-color: #1f3a5f; }
+        a.card.featured:hover { border-color: var(--accent); }
+        .card-icon { font-size: 1.8rem; margin-bottom: 0.75rem; }
+        .card h2 { font-size: 1.05rem; color: var(--text); margin-bottom: 0.35rem; }
+        .card p { font-size: 0.85rem; color: var(--muted); line-height: 1.5; }
+        .card .tags { margin-top: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+        .tag { background: var(--code-bg); border-radius: 4px; padding: 0.15em 0.5em; font-size: 0.75rem; font-family: "JetBrains Mono", Consolas, monospace; color: var(--muted); }
+        footer { text-align: center; margin-top: 3rem; color: var(--muted); font-size: 0.8rem; }
+        @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } a.card.featured { grid-column: auto; } }
+    </style>
 </head>
 <body>
-  <div class="container">
+<div class="container">
     <header>
-      <h1>flover-be</h1>
-      <p>AI 코드 가이드 — 행동 지침부터 테스트 컨벤션까지</p>
+        <h1>flover-be</h1>
+        <p>AI 코드 가이드 — 행동 지침부터 테스트 컨벤션까지</p>
     </header>
 
     <div class="grid">
 
-      <a class="card featured" href="claude_md.html">
-        <div class="card-icon">🤖</div>
-        <h2>CLAUDE.md — AI 코딩 가이드라인</h2>
-        <p>코딩 전 사고 방식, 단순성 우선, 외과적 변경, 목표 기반 실행 — LLM 코딩 실수를 줄이는 4가지 핵심 원칙</p>
-        <div class="tags">
-          <span class="tag">Think Before Coding</span>
-          <span class="tag">Simplicity First</span>
-          <span class="tag">Surgical Changes</span>
-          <span class="tag">Goal-Driven</span>
-        </div>
-      </a>
+        <a class="card featured" href="claude_md.html">
+            <div class="card-icon">🤖</div>
+            <h2>CLAUDE.md — AI 코딩 가이드라인</h2>
+            <p>코딩 전 사고 방식, 단순성 우선, 외과적 변경, 목표 기반 실행 — LLM 코딩 실수를 줄이는 4가지 핵심 원칙</p>
+            <div class="tags">
+                <span class="tag">Think Before Coding</span>
+                <span class="tag">Simplicity First</span>
+                <span class="tag">Surgical Changes</span>
+                <span class="tag">Goal-Driven</span>
+            </div>
+        </a>
 
-      <a class="card" href="skills.html">
-        <div class="card-icon">⚙️</div>
-        <h2>기술 스택</h2>
-        <p>Core 라이브러리, 테스트 프레임워크, 패키지 사용 주의사항</p>
-        <div class="tags">
-          <span class="tag">Java 21</span>
-          <span class="tag">Spring Boot</span>
-          <span class="tag">AWS S3</span>
-        </div>
-      </a>
+        <a class="card" href="skills.html">
+            <div class="card-icon">⚙️</div>
+            <h2>기술 스택</h2>
+            <p>Core 라이브러리, 테스트 프레임워크, 패키지 사용 주의사항</p>
+            <div class="tags">
+                <span class="tag">Java 21</span>
+                <span class="tag">Spring Boot</span>
+                <span class="tag">AWS S3</span>
+            </div>
+        </a>
 
-      <a class="card" href="code_convention.html">
-        <div class="card-icon">📐</div>
-        <h2>코드 컨벤션</h2>
-        <p>패키지 구조, DTO, Entity, 예외 처리, JPQL 집계 패턴, 안티패턴</p>
-        <div class="tags">
-          <span class="tag">DTO</span>
-          <span class="tag">Entity</span>
-          <span class="tag">ErrorCode</span>
-          <span class="tag">S3</span>
-        </div>
-      </a>
+        <a class="card" href="code_convention.html">
+            <div class="card-icon">📐</div>
+            <h2>코드 컨벤션</h2>
+            <p>패키지 구조, DTO, Entity, 예외 처리, JPQL 집계 패턴, 안티패턴</p>
+            <div class="tags">
+                <span class="tag">DTO</span>
+                <span class="tag">Entity</span>
+                <span class="tag">ErrorCode</span>
+                <span class="tag">S3</span>
+            </div>
+        </a>
 
-      <a class="card" href="workflow.html">
-        <div class="card-icon">🔀</div>
-        <h2>개발 워크플로우</h2>
-        <p>기능 개발 순서, 브랜치 전략, 커밋 메시지, PR 규칙</p>
-        <div class="tags">
-          <span class="tag">feature/</span>
-          <span class="tag">Conventional Commits</span>
-        </div>
-      </a>
+        <a class="card" href="workflow.html">
+            <div class="card-icon">🔀</div>
+            <h2>개발 워크플로우</h2>
+            <p>기능 개발 순서, 브랜치 전략, 커밋 메시지, PR 규칙</p>
+            <div class="tags">
+                <span class="tag">feature/</span>
+                <span class="tag">Conventional Commits</span>
+            </div>
+        </a>
 
-      <a class="card" href="test_convention.html">
-        <div class="card-icon">🧪</div>
-        <h2>테스트 컨벤션</h2>
-        <p>단위/통합 테스트 구조, Given-When-Then, @Mock vs @Spy</p>
-        <div class="tags">
-          <span class="tag">JUnit 5</span>
-          <span class="tag">Mockito</span>
-          <span class="tag">AssertJ</span>
-        </div>
-      </a>
+        <a class="card" href="test_convention.html">
+            <div class="card-icon">🧪</div>
+            <h2>테스트 컨벤션</h2>
+            <p>단위/통합 테스트 구조, Given-When-Then, @Mock vs @Spy</p>
+            <div class="tags">
+                <span class="tag">JUnit 5</span>
+                <span class="tag">Mockito</span>
+                <span class="tag">AssertJ</span>
+            </div>
+        </a>
 
     </div>
     <footer>flover-be · AI Guide Docs · Spring Boot 정적 리소스로 서빙</footer>
-  </div>
+</div>
 </body>
 </html>
