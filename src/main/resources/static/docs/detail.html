@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Flover Backend — 기술 문서</title>
+    <title>Plover Backend — 기술 문서</title>
     <style>
         :root {
             --green: #2ecc71;
@@ -180,6 +180,7 @@
         }
         .badge-auth { background: #1a3a2a; color: #68d391; }
         .badge-open { background: #2d2d2d; color: #888; }
+        .badge-deprecated { background: #3a1a1a; color: #f87171; }
 
         /* Interview QA */
         .qa-list { display: flex; flex-direction: column; gap: 16px; margin: 16px 0; }
@@ -374,7 +375,98 @@
             <h2>OAuth 소셜 로그인</h2>
         </div>
 
-        <h3>카카오 로그인 (Authorization Code Flow)</h3>
+        <h3>v1 vs v2 방식 비교</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th></th><th>v1 — Authorization Code Flow</th><th>v2 — Native SDK</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>엔드포인트</td>
+                        <td><span class="inline-code">POST /api/auth/kakao/login</span></td>
+                        <td><span class="inline-code">POST /api/auth/v2/kakao/login</span></td>
+                    </tr>
+                    <tr>
+                        <td>요청 파라미터</td>
+                        <td><span class="inline-code">{ code }</span> — 인가 코드</td>
+                        <td><span class="inline-code">{ accessToken }</span> — SDK 발급 토큰</td>
+                    </tr>
+                    <tr>
+                        <td>주 사용처</td>
+                        <td>웹 브라우저 / WebView 기반 앱</td>
+                        <td>iOS · Android 네이티브 앱 (카카오 SDK)</td>
+                    </tr>
+                    <tr>
+                        <td>서버 → 카카오 통신 횟수</td>
+                        <td>2회 (토큰 교환 + 사용자 정보)</td>
+                        <td>1회 (사용자 정보만)</td>
+                    </tr>
+                    <tr>
+                        <td>장점</td>
+                        <td>code는 단회성이라 탈취 후 재사용 불가, 웹 표준 OAuth 흐름</td>
+                        <td>흐름 단순, 서버 왕복 1회 감소, Native SDK UX 자연스러움</td>
+                    </tr>
+                    <tr>
+                        <td>단점</td>
+                        <td>서버가 카카오 토큰 서버를 한 번 더 호출 — 레이턴시 증가</td>
+                        <td>클라이언트가 accessToken을 서버로 전송하므로 전송 구간 보안 의존 (HTTPS 필수)</td>
+                    </tr>
+                    <tr>
+                        <td>401 에러 처리</td>
+                        <td><span class="inline-code">KAKAO_TOKEN_FAILED</span> (토큰 교환 실패)</td>
+                        <td><span class="inline-code">KAKAO_TOKEN_INVALID</span> (만료·유효하지 않은 토큰)</td>
+                    </tr>
+                    <tr>
+                        <td>상태</td>
+                        <td><span class="badge badge-deprecated">Deprecated</span> — Native SDK 전환 완료 후 제거 예정</td>
+                        <td><span class="badge badge-auth">현행</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>카카오 로그인 v2 — Native SDK 방식 <span class="badge badge-auth" style="vertical-align:middle;font-size:11px;">현행</span></h3>
+        <p>iOS/Android 카카오 Native SDK에서 직접 발급받은 <span class="inline-code">accessToken</span>을 서버로 전달합니다. 서버-서버 토큰 교환 단계가 없어 구조가 단순합니다.</p>
+        <div class="flow">
+            <div class="flow-step">
+                <div class="flow-num">1</div>
+                <div class="flow-content">
+                    <h4>액세스 토큰 수신</h4>
+                    <p>클라이언트가 카카오 Native SDK로 직접 발급받은 <span class="inline-code">accessToken</span>을 <span class="inline-code">POST /api/auth/v2/kakao/login</span>으로 전달</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">2</div>
+                <div class="flow-content">
+                    <h4>사용자 정보 조회</h4>
+                    <p>전달받은 accessToken으로 <span class="inline-code">https://kapi.kakao.com/v2/user/me</span> 호출 → 이메일, 닉네임, 프로필 이미지 획득</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">3</div>
+                <div class="flow-content">
+                    <h4>Upsert</h4>
+                    <p><span class="inline-code">provider=KAKAO, providerId=카카오ID</span>로 조회 → 없으면 신규 가입, 있으면 기존 반환</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">4</div>
+                <div class="flow-content">
+                    <h4>JWT 발급</h4>
+                    <p><span class="inline-code">LoginResponse { accessToken, tokenType, userId, nickname, email }</span> 반환</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="highlight-box">
+            <strong>401 에러 구분:</strong> <span class="inline-code">getKakaoUserInfo()</span> 호출 시 카카오 API가 401을 반환하면
+            <span class="inline-code">KAKAO_TOKEN_INVALID</span> (만료·유효하지 않은 토큰)를 발생시킵니다.
+            그 외 카카오 API 오류는 <span class="inline-code">KAKAO_USER_INFO_FAILED</span>로 구분합니다.
+        </div>
+
+        <h3>카카오 로그인 v1 — Authorization Code Flow <span class="badge badge-deprecated" style="vertical-align:middle;font-size:11px;">Deprecated</span></h3>
+        <p>WebView 기반 방식. Native SDK 전환 완료 후 제거 예정이며, 하위 호환을 위해 엔드포인트는 유지합니다.</p>
         <div class="flow">
             <div class="flow-step">
                 <div class="flow-num">1</div>
@@ -818,7 +910,8 @@ public CompletableFuture&lt;Void&gt; analyze(MultipartFile image, Long sessionId
             <table>
                 <thead><tr><th>Method</th><th>Endpoint</th><th>인증</th><th>설명</th></tr></thead>
                 <tbody>
-                <tr><td><span class="method-post">POST</span></td><td>/api/auth/kakao/login</td><td><span class="badge badge-open">공개</span></td><td>카카오 소셜 로그인</td></tr>
+                <tr><td><span class="method-post">POST</span></td><td>/api/auth/v2/kakao/login</td><td><span class="badge badge-open">공개</span></td><td>카카오 로그인 (Native SDK — accessToken 방식)</td></tr>
+                <tr><td><span class="method-post">POST</span></td><td>/api/auth/kakao/login</td><td><span class="badge badge-open">공개</span></td><td>카카오 로그인 (Code 방식) <span class="badge badge-deprecated">Deprecated</span></td></tr>
                 <tr><td><span class="method-post">POST</span></td><td>/api/auth/apple/login</td><td><span class="badge badge-open">공개</span></td><td>Apple 소셜 로그인</td></tr>
                 <tr><td><span class="method-get">GET</span></td><td>/api/users/me</td><td><span class="badge badge-auth">인증</span></td><td>내 정보 조회</td></tr>
                 <tr><td><span class="method-get">GET</span></td><td>/api/users/me/plogging-stats</td><td><span class="badge badge-auth">인증</span></td><td>누적 플로깅 통계</td></tr>
@@ -891,8 +984,28 @@ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect</code
             <div class="qa">
                 <div class="qa-q"><span class="qa-q-icon">Q</span>카카오와 Apple 로그인의 구현 방식 차이는?</div>
                 <div class="qa-a">
-                    <strong>카카오</strong>는 Authorization Code Flow입니다. 클라이언트에서 받은 code로 서버가 카카오 토큰 서버에 액세스 토큰을 요청하고, 그 토큰으로 사용자 정보 API를 호출합니다.<br><br>
-                    <strong>Apple</strong>은 identityToken(JWT) 검증 방식입니다. Apple의 JWKS 엔드포인트에서 공개키를 가져와 identityToken의 RSA 서명을 검증하고, Claims의 iss/aud/sub를 확인합니다. 카카오처럼 추가 API를 호출하지 않고 토큰 자체에서 사용자 정보를 추출합니다.
+                    <strong>카카오 v2 (현행, Native SDK)</strong>는 클라이언트가 카카오 Native SDK로 직접 발급받은 accessToken을 서버로 전달합니다. 서버는 그 토큰으로 카카오 사용자 정보 API를 바로 호출합니다. 서버-서버 토큰 교환 단계가 없어 흐름이 단순합니다.<br><br>
+                    <strong>카카오 v1 (Deprecated, Authorization Code Flow)</strong>는 WebView 기반입니다. 클라이언트에서 받은 code로 서버가 카카오 토큰 서버에 액세스 토큰을 요청하고, 그 토큰으로 사용자 정보 API를 호출합니다. Native SDK 전환 완료 후 제거 예정입니다.<br><br>
+                    <strong>Apple</strong>은 identityToken(JWT) 검증 방식입니다. Apple의 JWKS 엔드포인트에서 공개키를 가져와 identityToken의 RSA 서명을 검증하고, Claims의 iss/aud/sub를 확인합니다. 추가 API 호출 없이 토큰 자체에서 사용자 정보를 추출합니다.
+                </div>
+            </div>
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>카카오 로그인에 v2 엔드포인트를 별도로 추가한 이유는?</div>
+                <div class="qa-a">
+                    기존 v1은 WebView에서 인가 code를 받아 서버가 카카오 토큰 서버와 한 번 더 통신하는 구조입니다. 모바일 앱을 <strong>카카오 Native SDK</strong>로 전환하면 SDK가 accessToken을 직접 발급하므로, code 방식 대신 accessToken을 그대로 서버에 넘기는 것이 자연스럽습니다.<br><br>
+                    <strong>기존 엔드포인트(<code>/api/auth/kakao/login</code>)를 수정하지 않고 v2를 별도 추가한 이유</strong>는 하위 호환 유지입니다. 앱 업데이트가 즉시 전체 사용자에게 배포되지 않으므로 이전 버전 클라이언트가 기존 엔드포인트를 계속 호출합니다. 두 엔드포인트를 병행 운영하다 Native SDK 전환이 완료되면 v1을 제거할 계획입니다.<br><br>
+                    또한 <span class="inline-code">KAKAO_TOKEN_INVALID</span> 에러코드를 신규 추가해, accessToken이 만료됐을 때(<span class="inline-code">401</span> 응답)와 그 외 카카오 API 오류(<span class="inline-code">KAKAO_USER_INFO_FAILED</span>)를 명확히 구분합니다.
+                </div>
+            </div>
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>카카오 로그인 v1(Code 방식)과 v2(Native SDK 방식)의 사용처와 장단점 차이는?</div>
+                <div class="qa-a">
+                    <strong>v1 — Authorization Code Flow</strong>는 웹 브라우저나 WebView 기반 앱에서 사용합니다. 카카오가 발급한 인가 code를 클라이언트가 서버로 넘기면, 서버가 카카오 토큰 서버에 code를 보내 accessToken으로 교환한 뒤 사용자 정보 API를 호출합니다. 즉 <strong>서버 → 카카오 통신이 2회</strong> 발생합니다.<br><br>
+                    장점은 code가 단회성(one-time)이라 네트워크에서 탈취돼도 재사용이 불가능하다는 점입니다. 단점은 토큰 교환 왕복이 추가되어 레이턴시가 늘고 구현이 복잡합니다.<br><br>
+                    <strong>v2 — Native SDK 방식</strong>은 iOS·Android 네이티브 앱에서 사용합니다. 카카오 SDK가 accessToken을 클라이언트에서 직접 발급하고, 그 토큰을 서버로 전달하면 서버는 사용자 정보 API 호출 <strong>1회</strong>만 수행합니다.<br><br>
+                    장점은 흐름이 단순하고 서버 왕복이 1회 줄어 레이턴시가 개선되며, Native SDK의 UX(카카오톡 앱 연동 등)를 그대로 활용할 수 있습니다. 단점은 accessToken을 클라이언트에서 서버로 전송하는 구간의 보안이 HTTPS에 의존한다는 점과, 토큰이 만료된 경우 클라이언트가 SDK로 재발급 후 재요청해야 한다는 점입니다. 이를 위해 만료 시 <span class="inline-code">KAKAO_TOKEN_INVALID</span>(401)를 반환해 클라이언트가 상황을 명확히 인지할 수 있게 했습니다.
                 </div>
             </div>
 
