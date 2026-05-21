@@ -38,7 +38,14 @@ public class KakaoAuthService {
         KakaoDto.UserInfoResponse userInfo = getKakaoUserInfo(kakaoAccessToken);
         User user = upsertUser(userInfo);
         String jwtToken = jwtProvider.generateToken(user.getId());
+        return new AuthDto.LoginResponse(jwtToken, "Bearer", user.getId(), user.getNickname(), user.getEmail());
+    }
 
+    @Transactional
+    public AuthDto.LoginResponse kakaoLoginWithToken(String accessToken) {
+        KakaoDto.UserInfoResponse userInfo = getKakaoUserInfo(accessToken);
+        User user = upsertUser(userInfo);
+        String jwtToken = jwtProvider.generateToken(user.getId());
         return new AuthDto.LoginResponse(jwtToken, "Bearer", user.getId(), user.getNickname(), user.getEmail());
     }
 
@@ -83,7 +90,14 @@ public class KakaoAuthService {
                 throw new KakaoAuthException(AuthErrorCode.KAKAO_USER_INFO_FAILED);
             }
             return response;
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode().value() == 401) {
+                throw new KakaoAuthException(AuthErrorCode.KAKAO_TOKEN_INVALID);
+            }
+            log.error("카카오 사용자 정보 조회 실패 - status: {}, body: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new KakaoAuthException(AuthErrorCode.KAKAO_USER_INFO_FAILED);
         } catch (RestClientException e) {
+            log.error("카카오 사용자 정보 조회 실패 - 네트워크 오류: {}", e.getMessage());
             throw new KakaoAuthException(AuthErrorCode.KAKAO_USER_INFO_FAILED);
         }
     }
