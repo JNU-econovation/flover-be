@@ -6,6 +6,8 @@ public class AuthDto {
 
     public record CallbackRequest(@NotBlank String code) {}
 
+    public record KakaoTokenRequest(@NotBlank String accessToken) {}
+
     public record LoginResponse(
             String accessToken,
             String tokenType,

@@ -24,12 +24,21 @@ public class AuthController {
     private final KakaoAuthService kakaoAuthService;
     private final AppleAuthService appleAuthService;
 
-    @Operation(summary = "카카오 로그인", description = "프론트에서 받은 인가 코드로 JWT 토큰 발급")
+    @Operation(summary = "카카오 로그인 (Code 방식, Deprecated)", description = "WebView 방식. 인가 코드로 JWT 발급. Native SDK 전환 완료 후 제거 예정.")
     @PostMapping("/kakao/login")
     public ResponseEntity<AuthDto.LoginResponse> kakaoLogin(
             @RequestBody @Valid AuthDto.CallbackRequest request
     ) {
         AuthDto.LoginResponse response = kakaoAuthService.kakaoLogin(request.code());
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "카카오 로그인 (Native SDK 방식)", description = "카카오 Native SDK에서 발급받은 accessToken으로 JWT 발급")
+    @PostMapping("/v2/kakao/login")
+    public ResponseEntity<AuthDto.LoginResponse> kakaoLoginV2(
+            @RequestBody @Valid AuthDto.KakaoTokenRequest request
+    ) {
+        AuthDto.LoginResponse response = kakaoAuthService.kakaoLoginWithToken(request.accessToken());
         return ResponseEntity.ok(response);
     }
 
