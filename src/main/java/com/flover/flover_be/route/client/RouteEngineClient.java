@@ -13,13 +13,14 @@ import org.springframework.web.client.RestClient;
 
 import java.net.http.HttpClient;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collections;
 
 @Slf4j
 @Component
 public class RouteEngineClient {
 
     private static final int MAX_RETRIES = 3;
-
     private final RestClient restClient;
 
     public RouteEngineClient(@Value("${route.engine.url}") String routeEngineUrl) {
@@ -40,10 +41,9 @@ public class RouteEngineClient {
         Exception lastException = null;
         for (int i = 0; i < MAX_RETRIES; i++) {
             try {
-                log.info("Requesting route from engine (Attempt {}): lat={}, lon={}, distance={}",
-                         i + 1, lat, lon, distance);
-
-                return restClient.get()
+                log.info("Requesting routes from engine (Attempt {}): lat={}, lon={}, distance={}",
+                        i + 1, lat, lon, distance);
+                RouteDto.RouteInfo[] routeInfos = restClient.get()
                         .uri(uriBuilder -> uriBuilder
                                 .path("/api/v1/route")
                                 .queryParam("lat", lat)
@@ -52,7 +52,10 @@ public class RouteEngineClient {
                                 .queryParam("mode", mode)
                                 .build())
                         .retrieve()
-                        .body(RouteDto.Response.class);
+                        .body(RouteDto.RouteInfo[].class);
+                return new RouteDto.Response(
+                        routeInfos != null ? Arrays.asList(routeInfos) : Collections.emptyList()
+                );
 
             } catch (ResourceAccessException | HttpServerErrorException e) {
                 log.warn("Route Engine API call failed on attempt {}: {}", i + 1, e.getMessage());

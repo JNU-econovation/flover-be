@@ -2,6 +2,7 @@ package com.flover.flover_be.route.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import java.util.List;
 
 public class RouteDto {
     public record Request(
@@ -17,9 +18,14 @@ public class RouteDto {
         }
     }
 
-    public record Response(
+    public record RouteInfo(
             double distanceMeter,
             long timeMillis,
-            String encodedPath
+            String encodedPath,
+            int ploggingScore
+    ) {}
+
+    public record Response(
+            List<RouteInfo> routes
     ) {}
 }

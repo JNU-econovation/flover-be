@@ -16,6 +16,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -45,11 +47,13 @@ class RouteControllerTest {
                 .build();
     }
 
-    @DisplayName("정상 요청 시 200 OK와 경로 데이터를 반환한다")
+    @DisplayName("정상 요청 시 200 OK와 3개의 다중 추천 경로 목록 데이터를 반환한다")
     @Test
     void get_plogging_route_성공_200_반환() throws Exception {
         // given
-        RouteDto.Response mockResponse = new RouteDto.Response(2500.0, 605000, "encodedPathData");
+        RouteDto.Response mockResponse = new RouteDto.Response(
+                List.of(new RouteDto.RouteInfo(2500.0, 605000, "encodedPathData", 98))
+        );
         given(routeEngineClient.getRoute(anyDouble(), anyDouble(), anyInt(), anyString()))
                 .willReturn(mockResponse);
 
@@ -60,16 +64,19 @@ class RouteControllerTest {
                         .param("time", "30")
                         .param("mode", "PLOGGING"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.distanceMeter").value(2500.0))
-                .andExpect(jsonPath("$.timeMillis").value(605000))
-                .andExpect(jsonPath("$.encodedPath").value("encodedPathData"));
+                .andExpect(jsonPath("$.routes[0].distanceMeter").value(2500.0))
+                .andExpect(jsonPath("$.routes[0].timeMillis").value(605000))
+                .andExpect(jsonPath("$.routes[0].encodedPath").value("encodedPathData"))
+                .andExpect(jsonPath("$.routes[0].ploggingScore").value(98));
     }
 
     @DisplayName("time 파라미터가 30분일 때 distance 2500m로 변환되어 전달된다")
     @Test
     void get_plogging_route_시간_거리_변환_검증() throws Exception {
         // given
-        RouteDto.Response mockResponse = new RouteDto.Response(2500.0, 605000, "encodedPathData");
+        RouteDto.Response mockResponse = new RouteDto.Response(
+                List.of(new RouteDto.RouteInfo(2500.0, 605000, "encodedPathData", 98))
+        );
         given(routeEngineClient.getRoute(anyDouble(), anyDouble(), anyInt(), anyString()))
                 .willReturn(mockResponse);
 
@@ -91,7 +98,9 @@ class RouteControllerTest {
     @Test
     void get_plogging_route_기본_모드_PLOGGING() throws Exception {
         // given
-        RouteDto.Response mockResponse = new RouteDto.Response(2500.0, 605000, "encodedPathData");
+        RouteDto.Response mockResponse = new RouteDto.Response(
+                List.of(new RouteDto.RouteInfo(2500.0, 605000, "encodedPathData", 98))
+        );
         given(routeEngineClient.getRoute(anyDouble(), anyDouble(), anyInt(), anyString()))
                 .willReturn(mockResponse);
 
