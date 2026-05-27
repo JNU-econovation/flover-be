@@ -70,6 +70,56 @@ class PloggingServiceTest {
         verify(ploggingSessionRepository).save(any(PloggingSession.class));
     }
 
+    @DisplayName("플로깅 완료 응답에 이전/현재 경험치와 레벨이 포함된다")
+    @Test
+    void complete_경험치_이전후_반환() {
+        // given
+        Long userId = 1L;
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
+        // ploggingSeconds=600 → experience = (600/5)*1 = 120, level = 1
+        PloggingDto.CompleteRequest request = buildRequest(List.of(), List.of());
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(ploggingSessionRepository.save(any())).willAnswer(i -> i.getArgument(0));
+        given(ploggingRoutePointRepository.saveAll(any())).willReturn(List.of());
+        given(ploggingPhotoRepository.saveAll(any())).willReturn(List.of());
+
+        // when
+        PloggingDto.CompleteResponse result = ploggingService.complete(userId, request);
+
+        // then
+        assertThat(result.previousExperience()).isZero();
+        assertThat(result.currentExperience()).isEqualTo(120L);
+        assertThat(result.previousLevel()).isEqualTo(1);
+        assertThat(result.currentLevel()).isEqualTo(1);
+    }
+
+    @DisplayName("플로깅 완료 후 레벨업이 발생하면 이전/현재 레벨이 다르다")
+    @Test
+    void complete_레벨업_시_이전후_레벨_반환() {
+        // given
+        Long userId = 1L;
+        User user = User.create(OAuthProvider.KAKAO, "12345", "test@test.com", "닉네임", null);
+        // 미리 3300초 적립 → experience=660, level=1
+        user.addPloggingTimeSeconds(3300);
+        // ploggingSeconds=600 추가 → totalPloggingSeconds=3900, experience=780, level=2
+        PloggingDto.CompleteRequest request = buildRequest(List.of(), List.of());
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(ploggingSessionRepository.save(any())).willAnswer(i -> i.getArgument(0));
+        given(ploggingRoutePointRepository.saveAll(any())).willReturn(List.of());
+        given(ploggingPhotoRepository.saveAll(any())).willReturn(List.of());
+
+        // when
+        PloggingDto.CompleteResponse result = ploggingService.complete(userId, request);
+
+        // then
+        assertThat(result.previousExperience()).isEqualTo(660L);
+        assertThat(result.currentExperience()).isEqualTo(780L);
+        assertThat(result.previousLevel()).isEqualTo(1);
+        assertThat(result.currentLevel()).isEqualTo(2);
+    }
+
     @DisplayName("존재하지 않는 유저로 플로깅 완료 저장 시 예외가 발생한다")
     @Test
     void complete_유저없음_예외() {
@@ -186,6 +236,8 @@ class PloggingServiceTest {
 
         // then
         assertThat(result.ploggingSessionId()).isNull();
+        assertThat(result.previousExperience()).isNotNegative();
+        assertThat(result.currentExperience()).isGreaterThanOrEqualTo(result.previousExperience());
         verify(ploggingRoutePointRepository).saveAll(List.of());
         verify(ploggingPhotoRepository).saveAll(List.of());
     }
