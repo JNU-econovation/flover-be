@@ -58,9 +58,11 @@ public class PloggingService {
         saveRoutePoints(savedSession, request.routePoints());
         savePhotos(savedSession, request.photoUrls());
 
+        long previousExperience = user.getExperience();
+        int previousLevel = user.getLevel();
         user.addPloggingTimeSeconds(request.ploggingSeconds());
 
-        return new PloggingDto.CompleteResponse(savedSession.getId());
+        return new PloggingDto.CompleteResponse(savedSession.getId(), previousExperience, user.getExperience(), previousLevel, user.getLevel());
     }
 
     @Transactional(readOnly = true)

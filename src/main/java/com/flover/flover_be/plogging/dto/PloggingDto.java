@@ -40,7 +40,13 @@ public class PloggingDto {
             @NotNull @DecimalMin("-180.0") @DecimalMax("180.0") Double longitude
     ) {}
 
-    public record CompleteResponse(Long ploggingSessionId) {}
+    public record CompleteResponse(
+            Long ploggingSessionId,
+            long previousExperience,
+            long currentExperience,
+            int previousLevel,
+            int currentLevel
+    ) {}
 
     public record SessionSummaryResponse(
             Long ploggingSessionId,
