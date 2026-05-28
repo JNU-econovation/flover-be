@@ -1,28 +1,36 @@
 package com.flover.flover_be.global.config;
 
+import com.zaxxer.hikari.HikariDataSource;
+import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 @Configuration
 @ConditionalOnProperty(prefix = "postgres.datasource", name = "enabled", havingValue = "true")
 public class PostgresDataSourceConfig {
 
-    @Bean
-    public JdbcTemplate postgresJdbcTemplate(
+    @Bean(destroyMethod = "close")
+    public HikariDataSource postgresDataSource(
             @Value("${postgres.datasource.url}") String url,
             @Value("${postgres.datasource.username}") String username,
             @Value("${postgres.datasource.password}") String password,
             @Value("${postgres.datasource.driver-class-name}") String driverClassName
     ) {
-        DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setUrl(url);
+        HikariDataSource dataSource = new HikariDataSource();
+        dataSource.setJdbcUrl(url);
         dataSource.setUsername(username);
         dataSource.setPassword(password);
         dataSource.setDriverClassName(driverClassName);
-        return new JdbcTemplate(dataSource);
+        dataSource.setMinimumIdle(1);
+        dataSource.setMaximumPoolSize(5);
+        return dataSource;
+    }
+
+    @Bean
+    public JdbcTemplate postgresJdbcTemplate(DataSource postgresDataSource) {
+        return new JdbcTemplate(postgresDataSource);
     }
 }
