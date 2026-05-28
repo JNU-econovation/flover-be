@@ -1,7 +1,7 @@
 package com.flover.flover_be.global.config;
 
 import com.zaxxer.hikari.HikariDataSource;
-import javax.sql.DataSource;
+import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -12,8 +12,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 @ConditionalOnProperty(prefix = "postgres.datasource", name = "enabled", havingValue = "true")
 public class PostgresDataSourceConfig {
 
-    @Bean(destroyMethod = "close")
-    public HikariDataSource postgresDataSource(
+    private HikariDataSource postgresDataSource;
+
+    @Bean
+    public JdbcTemplate postgresJdbcTemplate(
             @Value("${postgres.datasource.url}") String url,
             @Value("${postgres.datasource.username}") String username,
             @Value("${postgres.datasource.password}") String password,
@@ -26,11 +28,14 @@ public class PostgresDataSourceConfig {
         dataSource.setDriverClassName(driverClassName);
         dataSource.setMinimumIdle(1);
         dataSource.setMaximumPoolSize(5);
-        return dataSource;
+        this.postgresDataSource = dataSource;
+        return new JdbcTemplate(dataSource);
     }
 
-    @Bean
-    public JdbcTemplate postgresJdbcTemplate(DataSource postgresDataSource) {
-        return new JdbcTemplate(postgresDataSource);
+    @PreDestroy
+    public void closePostgresDataSource() {
+        if (postgresDataSource != null) {
+            postgresDataSource.close();
+        }
     }
 }
