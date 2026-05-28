@@ -10,11 +10,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +36,7 @@ class PloggingAnalysisServiceTest {
 
     @Mock private RestClient restClient;
     @Mock private TrashDetectionRepository trashDetectionRepository;
+    @Mock private ObjectProvider<JdbcTemplate> postgresJdbcTemplateProvider;
 
     private PloggingAnalysisService service;
 
@@ -44,11 +48,12 @@ class PloggingAnalysisServiceTest {
     private static final String FILENAME = "trash.jpg";
     private static final Double LATITUDE = 37.5;
     private static final Double LONGITUDE = 127.0;
+    private static final LocalDateTime REPORTED_AT = LocalDateTime.of(2026, 5, 28, 12, 0);
 
     @BeforeEach
     void setUp() {
         service = new PloggingAnalysisService(
-                restClient, trashDetectionRepository,
+                restClient, trashDetectionRepository, postgresJdbcTemplateProvider,
                 "http://ai-test/predict", "test-api-key"
         );
 
@@ -77,7 +82,7 @@ class PloggingAnalysisServiceTest {
         given(responseSpec.body(AiResponseDto.class)).willReturn(response);
 
         // when
-        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE);
+        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE, REPORTED_AT);
 
         // then
         ArgumentCaptor<List<TrashDetection>> captor = ArgumentCaptor.forClass(List.class);
@@ -109,7 +114,7 @@ class PloggingAnalysisServiceTest {
         given(responseSpec.body(AiResponseDto.class)).willReturn(response);
 
         // when
-        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE);
+        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE, REPORTED_AT);
 
         // then
         ArgumentCaptor<List<TrashDetection>> captor = ArgumentCaptor.forClass(List.class);
@@ -136,7 +141,7 @@ class PloggingAnalysisServiceTest {
         given(responseSpec.body(AiResponseDto.class)).willReturn(response);
 
         // when
-        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE);
+        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE, REPORTED_AT);
 
         // then
         ArgumentCaptor<List<TrashDetection>> captor = ArgumentCaptor.forClass(List.class);
@@ -157,7 +162,7 @@ class PloggingAnalysisServiceTest {
         given(responseSpec.body(AiResponseDto.class)).willReturn(response);
 
         // when
-        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE);
+        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE, REPORTED_AT);
 
         // then
         ArgumentCaptor<List<TrashDetection>> captor = ArgumentCaptor.forClass(List.class);
@@ -173,7 +178,7 @@ class PloggingAnalysisServiceTest {
                 .willThrow(new RestClientException("AI 서버 연결 거부"));
 
         // when
-        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE);
+        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE, REPORTED_AT);
 
         // then
         verify(trashDetectionRepository, never()).saveAll(any());
@@ -191,7 +196,7 @@ class PloggingAnalysisServiceTest {
         given(responseSpec.body(AiResponseDto.class)).willReturn(failResponse);
 
         // when
-        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE);
+        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE, REPORTED_AT);
 
         // then
         verify(trashDetectionRepository, never()).saveAll(any());
@@ -204,7 +209,7 @@ class PloggingAnalysisServiceTest {
         given(responseSpec.body(AiResponseDto.class)).willReturn(null);
 
         // when
-        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE);
+        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE, REPORTED_AT);
 
         // then
         verify(trashDetectionRepository, never()).saveAll(any());
@@ -222,7 +227,7 @@ class PloggingAnalysisServiceTest {
         given(responseSpec.body(AiResponseDto.class)).willReturn(response);
 
         // when
-        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE);
+        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE, REPORTED_AT);
 
         // then
         verify(postBodySpec).header("X-API-Key", "test-api-key");
@@ -240,7 +245,7 @@ class PloggingAnalysisServiceTest {
         given(responseSpec.body(AiResponseDto.class)).willReturn(response);
 
         // when
-        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE);
+        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE, REPORTED_AT);
 
         // then
         ArgumentCaptor<List<TrashDetection>> captor = ArgumentCaptor.forClass(List.class);
@@ -256,7 +261,7 @@ class PloggingAnalysisServiceTest {
                 .willThrow(new RuntimeException("예상치 못한 오류"));
 
         // when
-        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE);
+        service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE, REPORTED_AT);
 
         // then
         verify(trashDetectionRepository, never()).saveAll(any());
