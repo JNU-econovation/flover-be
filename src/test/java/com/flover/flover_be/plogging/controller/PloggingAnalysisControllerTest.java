@@ -2,6 +2,7 @@ package com.flover.flover_be.plogging.controller;
 
 import com.flover.flover_be.global.exception.GlobalExceptionHandler;
 import com.flover.flover_be.plogging.service.PloggingAnalysisService;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,7 +49,8 @@ class PloggingAnalysisControllerTest {
     @Test
     void analyze_image_성공_200_반환() throws Exception {
         // given
-        doNothing().when(ploggingAnalysisService).analyzeAsync(any(), anyString(), anyDouble(), anyDouble());
+        doNothing().when(ploggingAnalysisService)
+                .analyzeAsync(any(), anyString(), anyDouble(), anyDouble(), any(LocalDateTime.class));
 
         // when & then
         mockMvc.perform(multipart("/api/plogging/analyze")
@@ -62,7 +64,8 @@ class PloggingAnalysisControllerTest {
     @Test
     void analyze_image_서비스_호출() throws Exception {
         // given
-        doNothing().when(ploggingAnalysisService).analyzeAsync(any(), anyString(), anyDouble(), anyDouble());
+        doNothing().when(ploggingAnalysisService)
+                .analyzeAsync(any(), anyString(), anyDouble(), anyDouble(), any(LocalDateTime.class));
 
         // when
         mockMvc.perform(multipart("/api/plogging/analyze")
@@ -72,7 +75,8 @@ class PloggingAnalysisControllerTest {
                 .andExpect(status().isOk());
 
         // then
-        verify(ploggingAnalysisService).analyzeAsync(any(), anyString(), anyDouble(), anyDouble());
+        verify(ploggingAnalysisService)
+                .analyzeAsync(any(), anyString(), anyDouble(), anyDouble(), any(LocalDateTime.class));
     }
 
     @DisplayName("image 파트 없이 요청하면 400을 반환한다")
@@ -84,7 +88,7 @@ class PloggingAnalysisControllerTest {
                         .param("longitude", "127.0"))
                 .andExpect(status().isBadRequest());
 
-        verify(ploggingAnalysisService, never()).analyzeAsync(any(), any(), any(), any());
+        verify(ploggingAnalysisService, never()).analyzeAsync(any(), any(), any(), any(), any());
     }
 
     @DisplayName("latitude 파라미터 없이 요청하면 400을 반환한다")
@@ -127,6 +131,6 @@ class PloggingAnalysisControllerTest {
                         .param("longitude", "127.0"))
                 .andExpect(status().isInternalServerError());
 
-        verify(ploggingAnalysisService, never()).analyzeAsync(any(), any(), any(), any());
+        verify(ploggingAnalysisService, never()).analyzeAsync(any(), any(), any(), any(), any());
     }
 }

@@ -6,6 +6,7 @@ import com.flover.flover_be.plogging.service.PloggingAnalysisService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -36,7 +37,7 @@ public class PloggingAnalysisController {
     ) {
         try {
             byte[] imageBytes = image.getBytes();
-            ploggingAnalysisService.analyzeAsync(imageBytes, image.getOriginalFilename(), latitude, longitude);
+            ploggingAnalysisService.analyzeAsync(imageBytes, image.getOriginalFilename(), latitude, longitude, LocalDateTime.now());
         } catch (IOException e) {
             log.error("이미지 데이터 읽기 실패: {}", e.getMessage());
             throw new PloggingException(PloggingErrorCode.IMAGE_PROCESSING_FAILED);
