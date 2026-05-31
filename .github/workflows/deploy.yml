@@ -138,4 +138,33 @@ jobs:
 
             docker compose pull app
             docker compose up -d
+
+            # 앱 기동 확인 (최대 90초 대기)
+            echo "앱 기동 대기 중..."
+            for i in $(seq 1 18); do
+              if docker compose logs app 2>&1 | grep -q "Started PloverBeApplication"; then
+                echo "✅ 앱 기동 확인"
+                break
+              fi
+              if [ $i -eq 18 ]; then
+                echo "❌ 앱 기동 타임아웃 (90초 초과)"
+                echo "=== 컨테이너 로그 ==="
+                docker compose logs app
+                exit 1
+              fi
+              echo "  대기 중... ($((i * 5))초 경과)"
+              sleep 5
+            done
+
+            # HTTP 헬스체크
+            echo "HTTP 헬스체크 중..."
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://localhost:8080 || echo "000")
+            if [ "$HTTP_STATUS" = "000" ]; then
+              echo "❌ HTTP 응답 없음 (서버 미응답)"
+              echo "=== 컨테이너 로그 ==="
+              docker compose logs app
+              exit 1
+            fi
+            echo "✅ HTTP 응답 확인 (status: $HTTP_STATUS)"
+
             docker image prune -f

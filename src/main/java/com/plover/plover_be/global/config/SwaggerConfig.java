@@ -12,8 +12,8 @@ public class SwaggerConfig {
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Flover API")
+                        .title("Plover API")
                         .version("v1.0")
-                        .description("Flover 서비스 API 문서"));
+                        .description("Plover 서비스 API 문서"));
     }
 }
