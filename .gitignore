@@ -41,3 +41,6 @@ out/
 .env.*
 !.env.example
 docker-compose.override.yml
+
+### Claude ###
+.claude/
