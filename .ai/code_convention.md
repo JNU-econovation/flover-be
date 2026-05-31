@@ -2,11 +2,11 @@
 
 ## 패키지 구조
 - 도메인 기반 패키지 구조를 사용한다.
-- 루트 패키지: `com.flover.flover_be`
+- 루트 패키지: `com.plover.plover_be`
 - 각 도메인 패키지 하위에 `controller`, `service`, `repository`, `domain`, `dto` 패키지를 둔다.
 
 ```
-com.flover.flover_be
+com.plover.plover_be
 ├── user/
 │   ├── controller/
 │   ├── service/

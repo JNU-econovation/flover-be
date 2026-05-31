@@ -72,7 +72,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/flover-be:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/plover-be:latest
 
   deploy:
     needs: [validate-secrets, build-and-push]
@@ -99,7 +99,7 @@ jobs:
           POSTGRES_DB_URL: ${{ secrets.POSTGRES_DB_URL }}
           POSTGRES_DB_USERNAME: ${{ secrets.POSTGRES_DB_USERNAME }}
           POSTGRES_DB_PASSWORD: ${{ secrets.POSTGRES_DB_PASSWORD }}
-          APP_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/flover-be:latest
+          APP_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/plover-be:latest
           APPLE_CLIENT_ID: ${{ secrets.APPLE_CLIENT_ID }}
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -107,11 +107,11 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: DB_USERNAME,DB_PASSWORD,KAKAO_CLIENT_ID,KAKAO_CLIENT_SECRET,KAKAO_REDIRECT_URI,JWT_SECRET,JWT_EXPIRATION,AWS_REGION,AWS_S3_BUCKET,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AI_SERVER_URL,AI_API_KEY,ROUTE_ENGINE_URL,POSTGRES_DB_ENABLED,POSTGRES_DB_URL,POSTGRES_DB_USERNAME,POSTGRES_DB_PASSWORD,APP_IMAGE,APPLE_CLIENT_ID
           script: |
-            cd ~/flover-be
+            cd ~/plover-be
             git pull origin develop
 
             cat > .env <<EOF
-            DB_URL=jdbc:mysql://mysql:3306/flover_db
+            DB_URL=jdbc:mysql://mysql:3306/plover_db
             DB_USERNAME=${DB_USERNAME}
             DB_PASSWORD=${DB_PASSWORD}
             KAKAO_CLIENT_ID=${KAKAO_CLIENT_ID}

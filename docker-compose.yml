@@ -1,9 +1,9 @@
 services:
   mysql:
     image: mysql:8
-    container_name: flover-mysql
+    container_name: plover-mysql
     environment:
-      MYSQL_DATABASE: flover_db
+      MYSQL_DATABASE: plover_db
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
@@ -18,7 +18,7 @@ services:
 
   app:
     image: ${APP_IMAGE}
-    container_name: flover-be
+    container_name: plover-be
     env_file: .env
     ports:
       - "8080:8080"
