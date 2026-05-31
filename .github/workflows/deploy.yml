@@ -13,6 +13,7 @@ jobs:
         env:
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
           DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+          DB_URL: ${{ secrets.DB_URL }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
@@ -37,7 +38,7 @@ jobs:
           APPLE_CLIENT_ID: ${{ secrets.APPLE_CLIENT_ID }}
         run: |
           MISSING=()
-          for VAR in DOCKER_HUB_USERNAME DOCKER_HUB_TOKEN DB_USERNAME DB_PASSWORD \
+          for VAR in DOCKER_HUB_USERNAME DOCKER_HUB_TOKEN DB_URL DB_USERNAME DB_PASSWORD \
                      KAKAO_CLIENT_ID KAKAO_CLIENT_SECRET KAKAO_REDIRECT_URI \
                      JWT_SECRET JWT_EXPIRATION \
                      AWS_REGION AWS_S3_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY \
@@ -81,6 +82,7 @@ jobs:
       - name: EC2 배포
         uses: appleboy/ssh-action@v1.0.3
         env:
+          DB_URL: ${{ secrets.DB_URL }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
@@ -105,13 +107,13 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: DB_USERNAME,DB_PASSWORD,KAKAO_CLIENT_ID,KAKAO_CLIENT_SECRET,KAKAO_REDIRECT_URI,JWT_SECRET,JWT_EXPIRATION,AWS_REGION,AWS_S3_BUCKET,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AI_SERVER_URL,AI_API_KEY,ROUTE_ENGINE_URL,POSTGRES_DB_ENABLED,POSTGRES_DB_URL,POSTGRES_DB_USERNAME,POSTGRES_DB_PASSWORD,APP_IMAGE,APPLE_CLIENT_ID
+          envs: DB_URL,DB_USERNAME,DB_PASSWORD,KAKAO_CLIENT_ID,KAKAO_CLIENT_SECRET,KAKAO_REDIRECT_URI,JWT_SECRET,JWT_EXPIRATION,AWS_REGION,AWS_S3_BUCKET,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AI_SERVER_URL,AI_API_KEY,ROUTE_ENGINE_URL,POSTGRES_DB_ENABLED,POSTGRES_DB_URL,POSTGRES_DB_USERNAME,POSTGRES_DB_PASSWORD,APP_IMAGE,APPLE_CLIENT_ID
           script: |
             cd ~/plover-be
             git pull origin develop
 
             cat > .env <<EOF
-            DB_URL=jdbc:mysql://mysql:3306/plover_db
+            DB_URL=${DB_URL}
             DB_USERNAME=${DB_USERNAME}
             DB_PASSWORD=${DB_PASSWORD}
             KAKAO_CLIENT_ID=${KAKAO_CLIENT_ID}

@@ -1,31 +1,8 @@
 services:
-  mysql:
-    image: mysql:8
-    container_name: plover-mysql
-    environment:
-      MYSQL_DATABASE: plover_db
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - mysql-data:/var/lib/mysql
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "MYSQL_PWD=\"${DB_PASSWORD}\" mysqladmin ping -h localhost -u root"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   app:
     image: ${APP_IMAGE}
     container_name: plover-be
     env_file: .env
     ports:
       - "8080:8080"
-    depends_on:
-      mysql:
-        condition: service_healthy
     restart: unless-stopped
-
-volumes:
-  mysql-data:
