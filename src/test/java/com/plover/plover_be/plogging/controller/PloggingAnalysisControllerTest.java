@@ -1,7 +1,10 @@
 package com.plover.plover_be.plogging.controller;
 
 import com.plover.plover_be.global.exception.GlobalExceptionHandler;
+import com.plover.plover_be.plogging.exception.PloggingErrorCode;
+import com.plover.plover_be.plogging.exception.PloggingException;
 import com.plover.plover_be.plogging.service.PloggingAnalysisService;
+import com.plover.plover_be.plogging.service.PloggingImageValidator;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -28,6 +32,9 @@ class PloggingAnalysisControllerTest {
 
     @Mock
     private PloggingAnalysisService ploggingAnalysisService;
+
+    @Mock
+    private PloggingImageValidator ploggingImageValidator;
 
     @InjectMocks
     private PloggingAnalysisController controller;
@@ -76,6 +83,24 @@ class PloggingAnalysisControllerTest {
 
         // then
         verify(ploggingAnalysisService)
+                .analyzeAsync(any(), anyString(), anyDouble(), anyDouble(), any(LocalDateTime.class));
+    }
+
+    @DisplayName("이미지 검증 실패 시 400을 반환하고 분석을 시작하지 않는다")
+    @Test
+    void analyze_image_검증_실패_400_반환() throws Exception {
+        // given
+        doThrow(new PloggingException(PloggingErrorCode.INVALID_IMAGE_FORMAT))
+                .when(ploggingImageValidator).validate(any());
+
+        // when & then
+        mockMvc.perform(multipart("/api/plogging/analyze")
+                        .file(VALID_IMAGE)
+                        .param("latitude", "37.5")
+                        .param("longitude", "127.0"))
+                .andExpect(status().isBadRequest());
+
+        verify(ploggingAnalysisService, never())
                 .analyzeAsync(any(), anyString(), anyDouble(), anyDouble(), any(LocalDateTime.class));
     }
 
