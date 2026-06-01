@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class PloggingImageValidatorTest {
 
     private static final String FILE_PART_NAME = "image";
-    private static final long MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024L;
+    private static final long MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024L;
 
     private final PloggingImageValidator validator = new PloggingImageValidator();
 
