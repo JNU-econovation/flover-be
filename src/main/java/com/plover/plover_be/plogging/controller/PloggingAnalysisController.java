@@ -3,6 +3,7 @@ package com.plover.plover_be.plogging.controller;
 import com.plover.plover_be.plogging.exception.PloggingErrorCode;
 import com.plover.plover_be.plogging.exception.PloggingException;
 import com.plover.plover_be.plogging.service.PloggingAnalysisService;
+import com.plover.plover_be.plogging.service.PloggingImageValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.IOException;
@@ -26,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class PloggingAnalysisController {
 
     private final PloggingAnalysisService ploggingAnalysisService;
+    private final PloggingImageValidator ploggingImageValidator;
 
     @Operation(summary = "플로깅 이미지 AI 분석",
             description = "플로깅 중 촬영한 이미지를 AI 서버로 전송하여 쓰레기 감지 분석을 비동기로 수행합니다. 분석 결과는 DB에 저장됩니다.")
@@ -36,6 +38,7 @@ public class PloggingAnalysisController {
             @RequestParam Double longitude
     ) {
         try {
+            ploggingImageValidator.validate(image);
             byte[] imageBytes = image.getBytes();
             ploggingAnalysisService.analyzeAsync(imageBytes, image.getOriginalFilename(), latitude, longitude, LocalDateTime.now());
         } catch (IOException e) {
