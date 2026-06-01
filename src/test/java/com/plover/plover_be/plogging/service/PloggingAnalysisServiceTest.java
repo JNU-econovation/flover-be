@@ -233,9 +233,9 @@ class PloggingAnalysisServiceTest {
         verify(postBodySpec).header("X-API-Key", "test-api-key");
     }
 
-    @DisplayName("감지 항목이 없으면 빈 리스트를 저장한다")
+    @DisplayName("감지 항목이 없으면 저장하지 않는다")
     @Test
-    void analyze_async_감지항목_없으면_빈_리스트_저장() {
+    void analyze_async_감지항목_없으면_저장안함() {
         // given
         AiResponseDto response = new AiResponseDto(
                 "success", 0,
@@ -248,9 +248,7 @@ class PloggingAnalysisServiceTest {
         service.analyzeAsync(IMAGE_BYTES, FILENAME, LATITUDE, LONGITUDE, REPORTED_AT);
 
         // then
-        ArgumentCaptor<List<TrashDetection>> captor = ArgumentCaptor.forClass(List.class);
-        verify(trashDetectionRepository).saveAll(captor.capture());
-        assertThat(captor.getValue()).isEmpty();
+        verify(trashDetectionRepository, never()).saveAll(any());
     }
 
     @DisplayName("예상치 못한 예외 발생 시 DB에 저장하지 않는다")

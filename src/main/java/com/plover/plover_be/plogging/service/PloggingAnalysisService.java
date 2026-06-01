@@ -102,6 +102,11 @@ public class PloggingAnalysisService {
                 ))
                 .toList();
 
+        if (detections.isEmpty()) {
+            log.info("쓰레기 감지 결과 없음: 저장 생략");
+            return;
+        }
+
         List<TrashDetection> savedDetections = trashDetectionRepository.saveAll(detections);
         saveRawTrashReports(savedDetections, reportedAt);
         log.info("쓰레기 감지 결과 저장 완료: {}건", detections.size());
