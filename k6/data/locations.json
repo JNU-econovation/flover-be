@@ -1,0 +1,22 @@
+[
+  {
+    "name": "seoul_city_hall",
+    "lat": 37.5665,
+    "lng": 126.9780
+  },
+  {
+    "name": "gangnam_station",
+    "lat": 37.4979,
+    "lng": 127.0276
+  },
+  {
+    "name": "hongdae",
+    "lat": 37.5572,
+    "lng": 126.9254
+  },
+  {
+    "name": "gwangju_chonnam_univ",
+    "lat": 35.1769,
+    "lng": 126.9058
+  }
+]

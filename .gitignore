@@ -42,5 +42,9 @@ out/
 !.env.example
 docker-compose.override.yml
 
+### k6 ###
+k6/results/*
+!k6/results/.gitignore
+
 ### Claude ###
 .claude/
