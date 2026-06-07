@@ -7,10 +7,9 @@ if ((__ENV.RUN_HEAVY_API || 'false').toLowerCase() !== 'true') {
   throw new Error('AI analysis test is disabled. Set RUN_HEAVY_API=true to call the external AI API.');
 }
 
-const imagePath = __ENV.AI_IMAGE_PATH || '../data/sample-trash-image.jpg';
-const imageName = __ENV.AI_IMAGE_NAME || 'k6-ai-test.jpg';
-const imageContentType = __ENV.AI_IMAGE_CONTENT_TYPE || 'image/jpeg';
-const imageBytes = open(imagePath, 'b');
+const imageName = 'sample-trash-image.jpg';
+const imageContentType = 'image/jpeg';
+const imageBytes = open('../data/sample-trash-image.jpg', 'b');
 
 export const options = {
   summaryTrendStats: ['avg', 'min', 'med', 'p(90)', 'p(95)', 'p(99)', 'max'],

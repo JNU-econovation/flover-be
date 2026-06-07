@@ -131,12 +131,11 @@ AI 분석 API는 일반 load/stress에서 분리되어 있습니다. `k6/data/sa
 
 ```powershell
 $env:RUN_HEAVY_API = "true"
-$env:AI_IMAGE_PATH = "../data/sample-trash-image.jpg"
 k6 run k6/scenarios/ai-analysis-smoke-test.js
 Remove-Item Env:RUN_HEAVY_API
 ```
 
-`AI_IMAGE_PATH`는 `ai-analysis-smoke-test.js` 파일 기준 상대 경로로 지정합니다.
+AI 분석 테스트 이미지는 반드시 `k6/data/sample-trash-image.jpg` 경로에 JPEG 파일로 둡니다. k6의 `open()`은 init context에서 실행되므로 동적 환경변수 경로 대신 스크립트 안의 정적 문자열 리터럴 경로를 사용합니다.
 
 ## 결과 저장
 

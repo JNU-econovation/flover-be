@@ -1,6 +1,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
+import exec from 'k6/execution';
 
 const locations = new SharedArray('locations', () => JSON.parse(open('../data/locations.json')));
 
@@ -32,7 +33,7 @@ function randomLocation() {
 }
 
 function randomSuffix() {
-  return `${Date.now()}-${__VU}-${__ITER}`;
+  return `${Date.now()}-${exec.vu.idInTest}-${exec.scenario.iterationInTest}`;
 }
 
 function query(params) {

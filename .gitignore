@@ -45,6 +45,7 @@ docker-compose.override.yml
 ### k6 ###
 k6/results/*
 !k6/results/.gitignore
+k6/data/sample-trash-image.jpg
 
 ### Claude ###
 .claude/
