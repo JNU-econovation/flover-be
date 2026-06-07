@@ -20,16 +20,20 @@ import java.util.Collections;
 @Component
 public class RouteEngineClient {
 
-    private static final int MAX_RETRIES = 3;
+    private static final int MAX_RETRIES = 2;
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(2);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
+    private static final long RETRY_DELAY_MILLIS = 300L;
+
     private final RestClient restClient;
 
     public RouteEngineClient(@Value("${route.engine.url}") String routeEngineUrl) {
         HttpClient httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
+                .connectTimeout(CONNECT_TIMEOUT)
                 .build();
 
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
-        requestFactory.setReadTimeout(Duration.ofSeconds(15));
+        requestFactory.setReadTimeout(READ_TIMEOUT);
 
         this.restClient = RestClient.builder()
                 .baseUrl(routeEngineUrl)
@@ -41,7 +45,7 @@ public class RouteEngineClient {
         Exception lastException = null;
         for (int i = 0; i < MAX_RETRIES; i++) {
             try {
-                log.info("Requesting routes from engine (Attempt {}): lat={}, lon={}, distance={}",
+                log.debug("Requesting routes from engine (Attempt {}): lat={}, lon={}, distance={}",
                         i + 1, lat, lon, distance);
                 RouteDto.RouteInfo[] routeInfos = restClient.get()
                         .uri(uriBuilder -> uriBuilder
@@ -62,7 +66,7 @@ public class RouteEngineClient {
                 lastException = e;
                 if (i < MAX_RETRIES - 1) {
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(RETRY_DELAY_MILLIS);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
                         throw new RouteException(RouteErrorCode.ROUTE_CALCULATION_FAILED);
