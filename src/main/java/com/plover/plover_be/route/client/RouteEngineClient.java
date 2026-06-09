@@ -1,5 +1,7 @@
 package com.plover.plover_be.route.client;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.plover.plover_be.route.dto.RouteDto;
 import com.plover.plover_be.route.exception.RouteErrorCode;
 import com.plover.plover_be.route.exception.RouteException;
@@ -24,8 +26,15 @@ public class RouteEngineClient {
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(2);
     private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
     private static final long RETRY_DELAY_MILLIS = 300L;
+    private static final double COORDINATE_BUCKET_SIZE = 0.0005;
+    private static final long ROUTE_CACHE_MAX_SIZE = 1_000L;
+    private static final Duration ROUTE_CACHE_TTL = Duration.ofMinutes(5);
 
     private final RestClient restClient;
+    private final Cache<RouteCacheKey, RouteDto.Response> routeCache = Caffeine.newBuilder()
+            .maximumSize(ROUTE_CACHE_MAX_SIZE)
+            .expireAfterWrite(ROUTE_CACHE_TTL)
+            .build();
 
     public RouteEngineClient(@Value("${route.engine.url}") String routeEngineUrl) {
         HttpClient httpClient = HttpClient.newBuilder()
@@ -42,6 +51,11 @@ public class RouteEngineClient {
     }
 
     public RouteDto.Response getRoute(double lat, double lon, int distance, String mode) {
+        RouteCacheKey key = RouteCacheKey.from(lat, lon, distance, mode);
+        return routeCache.get(key, ignored -> requestRouteFromEngine(lat, lon, distance, mode));
+    }
+
+    private RouteDto.Response requestRouteFromEngine(double lat, double lon, int distance, String mode) {
         Exception lastException = null;
         for (int i = 0; i < MAX_RETRIES; i++) {
             try {
@@ -76,5 +90,16 @@ public class RouteEngineClient {
         }
         log.error("All {} attempts failed for Route Engine API.", MAX_RETRIES, lastException);
         throw new RouteException(RouteErrorCode.ROUTE_ENGINE_CONNECTION_FAILED);
+    }
+
+    private record RouteCacheKey(long latBucket, long lonBucket, int distance, String mode) {
+
+        private static RouteCacheKey from(double lat, double lon, int distance, String mode) {
+            return new RouteCacheKey(toBucket(lat), toBucket(lon), distance, mode);
+        }
+
+        private static long toBucket(double coordinate) {
+            return Math.round(coordinate / COORDINATE_BUCKET_SIZE);
+        }
     }
 }
