@@ -17,11 +17,13 @@ import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Locale;
 
 @Slf4j
 @Component
 public class RouteEngineClient {
 
+    private static final String DEFAULT_MODE = "PLOGGING";
     private static final int MAX_RETRIES = 2;
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(2);
     private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
@@ -51,8 +53,9 @@ public class RouteEngineClient {
     }
 
     public RouteDto.Response getRoute(double lat, double lon, int distance, String mode) {
-        RouteCacheKey key = RouteCacheKey.from(lat, lon, distance, mode);
-        return routeCache.get(key, ignored -> requestRouteFromEngine(lat, lon, distance, mode));
+        String normalizedMode = normalizeMode(mode);
+        RouteCacheKey key = RouteCacheKey.from(lat, lon, distance, normalizedMode);
+        return routeCache.get(key, ignored -> requestRouteFromEngine(lat, lon, distance, normalizedMode));
     }
 
     private RouteDto.Response requestRouteFromEngine(double lat, double lon, int distance, String mode) {
@@ -90,6 +93,13 @@ public class RouteEngineClient {
         }
         log.error("All {} attempts failed for Route Engine API.", MAX_RETRIES, lastException);
         throw new RouteException(RouteErrorCode.ROUTE_ENGINE_CONNECTION_FAILED);
+    }
+
+    private String normalizeMode(String mode) {
+        if (mode == null || mode.isBlank()) {
+            return DEFAULT_MODE;
+        }
+        return mode.trim().toUpperCase(Locale.ROOT);
     }
 
     private record RouteCacheKey(long latBucket, long lonBucket, int distance, String mode) {

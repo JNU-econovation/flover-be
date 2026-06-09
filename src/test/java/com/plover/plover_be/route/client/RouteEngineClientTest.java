@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -71,6 +72,29 @@ class RouteEngineClientTest {
 
         assertThat(response.routes()).hasSize(1);
         assertThat(callCount.get()).isEqualTo(3);
+    }
+
+    @DisplayName("mode는 기본값과 대문자로 정규화되어 캐시 키와 route engine 요청에 사용된다")
+    @Test
+    void get_route_normalizes_mode_for_cache_key_and_engine_request() throws IOException {
+        // given
+        AtomicInteger callCount = new AtomicInteger();
+        AtomicReference<String> rawQuery = new AtomicReference<>();
+        RouteEngineClient client = createClient(exchange -> {
+            callCount.incrementAndGet();
+            rawQuery.set(exchange.getRequestURI().getRawQuery());
+            respond(exchange, 200, routeResponseBody());
+        });
+
+        // when
+        RouteDto.Response first = client.getRoute(37.5665, 126.9780, 2500, "plogging");
+        RouteDto.Response second = client.getRoute(37.5665, 126.9780, 2500, null);
+
+        // then
+        assertThat(first.routes()).hasSize(1);
+        assertThat(second.routes()).hasSize(1);
+        assertThat(callCount.get()).isEqualTo(1);
+        assertThat(rawQuery.get()).contains("mode=PLOGGING");
     }
 
     private RouteEngineClient createClient(HttpHandler handler) throws IOException {
