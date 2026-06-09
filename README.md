@@ -76,7 +76,7 @@ http://localhost:8080/swagger-ui/index.html
 | GET | `/api/v1/routes` | Route Engine 기반 플로깅 추천 경로 조회 |
 | POST | `/api/plogging/analyze` | 쓰레기 제보 이미지 AI 분석 요청 |
 
-## 주요 설계 및 기술적 도전
+## 주요 설계
 
 ### 위치 기반 시설 조회
 
@@ -94,9 +94,10 @@ Presigned URL 유효 시간은 10분입니다.
 
 분석 결과는 서비스 조회와 운영 데이터를 위한 MySQL `trash_detections`에 저장합니다. PostgreSQL이 활성화되어 있으면 공간 분석용 원천 제보 데이터로 활용할 수 있도록 `raw_trash_reports`에도 `geometry` 형태로 별도 저장합니다.
 
-### 성능 개선: Route API 병목 개선
 
-#### 문제 상황
+## 성능 개선: Route API 병목 개선
+
+### 문제 상황
 
 k6 stress 테스트에서 `GET /api/v1/routes` 경로 추천 API가 주요 병목으로 확인되었습니다. 테스트는 총 13분 동안 최대 50 VU까지 증가시키는 방식으로 진행했습니다.
 
@@ -113,7 +114,7 @@ k6 stress 테스트에서 `GET /api/v1/routes` 경로 추천 API가 주요 병�
 | 전체 p95 | `483.51ms` |
 | 전체 p99 | `2307.46ms` |
 
-#### 해결 방법
+### 해결 방법
 
 먼저 외부 Route Engine과의 timeout과 retry 횟수를 조정해보았지만, 반복 호출 비용 자체는 줄어들지 않았습니다. 
 오히려 일부 요청에서 실패율만 늘어나고 응답 시간 개선은 거의 없었기 때문에, 외부 엔진 호출 빈도를 줄이는 방향으로 접근했습니다.
@@ -153,7 +154,7 @@ public RouteDto.Response getRoute(double lat, double lon, int distance, String m
 
 `mode`는 `null`, 공백, 소문자 입력으로 인한 캐시 미스를 줄이기 위해 진입 시점에 기본값 `PLOGGING`과 대문자 변환을 적용합니다.
 
-#### 개선 결과
+### 개선 결과
 
 같은 stress 조건에서 다시 측정한 결과, Route Engine 반복 호출이 줄어들면서 route API 응답 시간이 크게 개선되었습니다.
 
@@ -167,7 +168,7 @@ public RouteDto.Response getRoute(double lat, double lon, int distance, String m
 | 전체 p95 | `483.51ms` | `73.95ms` | `84.7%` |
 | 전체 p99 | `2307.46ms` | `170.11ms` | `92.6%` |
 
-처리량과 안정성:
+### 처리량과 안정성:
 
 | 지표 | 개선 전 | 개선 후 | 변화 |
 | --- | ---: | ---: | ---: |
