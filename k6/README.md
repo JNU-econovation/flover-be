@@ -142,12 +142,12 @@ AI 분석 테스트 이미지는 반드시 `k6/data/sample-trash-image.jpg` 경�
 각 스크립트는 종료 시 자동으로 결과를 저장합니다.
 
 ```text
-k6/results/smoke-summary.json
-k6/results/smoke-summary.html
-k6/results/load-summary.json
-k6/results/load-summary.html
-k6/results/stress-summary.json
-k6/results/stress-summary.html
+k6/results/smoke-summary-YYYYMMDD-HHmmss.json
+k6/results/smoke-summary-YYYYMMDD-HHmmss.html
+k6/results/load-summary-YYYYMMDD-HHmmss.json
+k6/results/load-summary-YYYYMMDD-HHmmss.html
+k6/results/stress-summary-YYYYMMDD-HHmmss.json
+k6/results/stress-summary-YYYYMMDD-HHmmss.html
 ```
 
 k6 기본 JSON export도 같이 남기고 싶다면 다음처럼 실행할 수 있습니다.
