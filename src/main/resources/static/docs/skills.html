@@ -34,6 +34,7 @@
   <div class="container">
     <nav>
       <a href="index.html">← 목록으로</a>
+      <a href="detail.html">상세 기술 문서</a>
       <a href="claude_md.html">CLAUDE.md</a>
       <a href="code_convention.html">코드 컨벤션</a>
       <a href="workflow.html">워크플로우</a>
@@ -49,12 +50,22 @@
       <span class="badge">Spring Boot 4.0.5</span>
       <span class="badge">Spring Data JPA</span>
       <span class="badge">Spring Web MVC</span>
+      <span class="badge">Bean Validation</span>
       <span class="badge">MySQL</span>
+      <span class="badge">PostgreSQL Driver</span>
       <span class="badge">Lombok</span>
       <span class="badge">Gradle (Groovy DSL)</span>
       <span class="badge">AWS SDK v2</span>
+      <span class="badge">Caffeine</span>
+      <span class="badge">SpringDoc OpenAPI</span>
       <ul style="margin-top:1rem;">
+        <li><code>org.springframework.boot:spring-boot-starter-validation</code> — Request DTO 검증, 파일 업로드 파라미터 검증</li>
+        <li><code>io.jsonwebtoken:jjwt-api:0.12.6</code> — JWT 생성·검증</li>
+        <li><code>com.github.ben-manes.caffeine:caffeine</code> — Route Engine 성공 응답 JVM 인메모리 캐시</li>
         <li><code>software.amazon.awssdk:s3</code> — S3 파일 저장, Presigned URL 발급</li>
+        <li><code>org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6</code> — Swagger UI / OpenAPI 문서</li>
+        <li><code>runtimeOnly com.mysql:mysql-connector-j</code> — 메인 MySQL 연결</li>
+        <li><code>runtimeOnly org.postgresql:postgresql</code> — AI 원천 제보 선택 저장소 연결</li>
       </ul>
     </div>
     <div class="section">
@@ -63,6 +74,16 @@
       <span class="badge">AssertJ</span>
       <span class="badge">Mockito</span>
       <span class="badge">Spring Boot Test</span>
+    </div>
+    <div class="section">
+      <h2>부하 테스트</h2>
+      <span class="badge">k6</span>
+      <ul style="margin-top:1rem;">
+        <li><code>k6/scenarios/smoke-test.js</code> — 핵심 API 정상 동작 확인</li>
+        <li><code>k6/scenarios/load-test.js</code> — 일반 부하 상황의 응답 시간과 실패율 측정</li>
+        <li><code>k6/scenarios/stress-test.js</code> — VU를 단계적으로 올려 병목 지점 확인</li>
+        <li><code>k6/scenarios/ai-analysis-smoke-test.js</code> — AI 이미지 분석 API 별도 smoke 테스트</li>
+      </ul>
     </div>
     <div class="section">
       <h2>주의 사항</h2>

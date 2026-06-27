@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>plover-be — AI 가이드</title>
+    <title>plover-be — 기술 문서</title>
     <style>
         :root {
             --bg: #0d1117; --surface: #161b22; --border: #30363d;
@@ -42,12 +42,24 @@
 <div class="container">
     <header>
         <h1>plover-be</h1>
-        <p>AI 코드 가이드 — 행동 지침부터 테스트 컨벤션까지</p>
+        <p>프로젝트 상세 문서와 AI 코드 가이드</p>
     </header>
 
     <div class="grid">
 
-        <a class="card featured" href="claude_md.html">
+        <a class="card featured" href="detail.html">
+            <div class="card-icon">📘</div>
+            <h2>상세 기술 문서</h2>
+            <p>전체 백엔드 구조, API, DB, S3 업로드, AI 이미지 검증, Route Engine 캐시, k6 부하 테스트까지 코드 기준으로 정리</p>
+            <div class="tags">
+                <span class="tag">Architecture</span>
+                <span class="tag">Route Cache</span>
+                <span class="tag">AI Analysis</span>
+                <span class="tag">k6</span>
+            </div>
+        </a>
+
+        <a class="card" href="claude_md.html">
             <div class="card-icon">🤖</div>
             <h2>CLAUDE.md — AI 코딩 가이드라인</h2>
             <p>코딩 전 사고 방식, 단순성 우선, 외과적 변경, 목표 기반 실행 — LLM 코딩 실수를 줄이는 4가지 핵심 원칙</p>
@@ -67,6 +79,7 @@
                 <span class="tag">Java 21</span>
                 <span class="tag">Spring Boot</span>
                 <span class="tag">AWS S3</span>
+                <span class="tag">Caffeine</span>
             </div>
         </a>
 
@@ -104,7 +117,7 @@
         </a>
 
     </div>
-    <footer>plover-be · AI Guide Docs · Spring Boot 정적 리소스로 서빙</footer>
+    <footer>plover-be · Project Docs · Spring Boot 정적 리소스로 서빙</footer>
 </div>
 </body>
 </html>

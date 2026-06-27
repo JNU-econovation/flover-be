@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8" />
@@ -229,7 +230,7 @@
 <nav class="sidebar">
     <div class="sidebar-logo">
         <h1>Plover BE</h1>
-        <p>Spring Boot 4 · Java 21 · MySQL</p>
+        <p>Spring Boot 4 · Java 21 · Caffeine</p>
     </div>
     <div class="nav">
         <div class="nav-section">개요</div>
@@ -244,10 +245,12 @@
         <a href="#plogging">플로깅 도메인</a>
         <a href="#facility">주변 시설 검색</a>
         <a href="#route">경로 추천</a>
+        <a href="#performance">성능 개선</a>
         <a href="#exception">예외 처리</a>
         <a href="#async">비동기 · 이미지 검증</a>
 
         <div class="nav-section">API & DB</div>
+        <a href="#k6">k6 부하 테스트</a>
         <a href="#api">API 엔드포인트</a>
         <a href="#db">DB 스키마</a>
 
@@ -283,12 +286,22 @@
             <div class="card">
                 <div class="card-icon">🗑️</div>
                 <h4>Facility 도메인</h4>
-                <p>반경 1km 내 화장실·쓰레기통 조회 (공간 인덱스)</p>
+                <p>반경 1km 내 화장실·쓰레기통 조회, 거리순 정렬</p>
             </div>
             <div class="card">
                 <div class="card-icon">🗺️</div>
                 <h4>Route 도메인</h4>
-                <p>외부 라우팅 엔진 연동, 3회 재시도, 경로 추천</p>
+                <p>외부 Route Engine 연동, Caffeine 캐시, 경로 추천</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">🔎</div>
+                <h4>AI Analysis</h4>
+                <p>쓰레기 제보 이미지 검증, 외부 AI 서버 비동기 호출, 감지 결과 저장</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">☁️</div>
+                <h4>Storage · Test</h4>
+                <p>S3 Presigned URL, PostgreSQL 원천 제보 저장, k6 부하 테스트</p>
             </div>
         </div>
     </section>
@@ -303,15 +316,18 @@
             <table>
                 <thead><tr><th>분류</th><th>기술</th><th>비고</th></tr></thead>
                 <tbody>
-                <tr><td>언어 / 런타임</td><td>Java 21</td><td>Record, Pattern Matching 활용</td></tr>
+                <tr><td>언어 / 런타임</td><td>Java 21</td><td>Record DTO, Java 21 toolchain</td></tr>
                 <tr><td>프레임워크</td><td>Spring Boot 4.0.5</td><td>Spring Web MVC, Spring Data JPA</td></tr>
                 <tr><td>데이터베이스</td><td>MySQL 8.x</td><td>공간 인덱스, ST_Distance_Sphere</td></tr>
+                <tr><td>선택 저장소</td><td>PostgreSQL + JdbcTemplate</td><td>AI 원천 제보 raw_trash_reports 저장</td></tr>
                 <tr><td>ORM</td><td>Spring Data JPA / Hibernate</td><td>인터페이스 Projection, JPQL 집계</td></tr>
                 <tr><td>인증</td><td>JWT (jjwt 0.12.6)</td><td>HMAC-SHA, Bearer Token</td></tr>
                 <tr><td>파일 스토리지</td><td>AWS S3 SDK v2</td><td>Presigned PUT URL</td></tr>
+                <tr><td>캐시</td><td>Caffeine</td><td>Route Engine 성공 응답 JVM 인메모리 캐시</td></tr>
                 <tr><td>빌드</td><td>Gradle (Groovy DSL)</td><td></td></tr>
                 <tr><td>API 문서</td><td>SpringDoc OpenAPI 2.8.6</td><td></td></tr>
                 <tr><td>테스트</td><td>JUnit 5 + Mockito + AssertJ</td><td></td></tr>
+                <tr><td>부하 테스트</td><td>k6</td><td>smoke/load/stress/AI 분석 smoke 시나리오</td></tr>
                 </tbody>
             </table>
         </div>
@@ -346,7 +362,7 @@
 │   └── dto/          FacilityDto
 ├── route/
 │   ├── controller/   RouteController
-│   ├── client/       RouteEngineClient
+│   ├── client/       RouteEngineClient (Route Engine 연동, Caffeine 캐시)
 │   ├── exception/    RouteErrorCode, RouteException
 │   └── dto/          RouteDto
 └── global/
@@ -356,7 +372,12 @@
     ├── storage/      S3StorageService, StorageDto, AwsS3Config
     ├── exception/    ErrorCode (interface), CommonErrorCode, BusinessException, GlobalExceptionHandler
     ├── response/     ErrorResponse
-    └── config/       WebConfig, RestClientConfig, AsyncConfig, SwaggerConfig, PostgresDataSourceConfig</code></pre>
+    └── config/       WebConfig, RestClientConfig, AsyncConfig, SwaggerConfig, PostgresDataSourceConfig
+
+k6/
+├── data/             locations.json, sample-trash-image.jpg(로컬 전용)
+├── scenarios/        smoke-test, load-test, stress-test, ai-analysis-smoke-test
+└── results/          실행 결과 JSON/HTML 산출물(.gitignore 유지)</code></pre>
 
         <h3>요청 처리 흐름</h3>
         <pre><code>HTTP Request
@@ -368,6 +389,20 @@
 
 에러 발생 시:
   BusinessException → GlobalExceptionHandler → ErrorResponse { status, message }</code></pre>
+
+        <h3>외부 의존성 경계</h3>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>외부 시스템</th><th>연동 지점</th><th>실패 처리</th></tr></thead>
+                <tbody>
+                <tr><td>Kakao API</td><td>토큰 교환, 사용자 정보 조회</td><td>401은 토큰 오류로 구분, 그 외 사용자 정보 조회 실패 처리</td></tr>
+                <tr><td>Apple JWKS</td><td>identityToken 서명 검증용 공개키 조회</td><td>JWKS 조회/키 매칭/claims 오류를 Apple 인증 예외로 변환</td></tr>
+                <tr><td>Route Engine</td><td>GET /api/v1/route</td><td>연결 오류/5xx에 한해 2회 시도 후 503 반환, 성공 응답은 캐시</td></tr>
+                <tr><td>AI Server</td><td>multipart 이미지 분석 요청</td><td>비동기 스레드에서 로깅 후 종료, 사용자 응답 흐름과 분리</td></tr>
+                <tr><td>AWS S3</td><td>Presigned PUT URL 발급, 소유 객체 삭제</td><td>삭제 실패는 경고 로그만 남기고 사용자 업데이트를 막지 않음</td></tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 
     <!-- OAuth -->
@@ -639,7 +674,7 @@ public UserDto.Response getMyInfo(@LoginUserId Long userId) {
                 <div class="flow-num">2</div>
                 <div class="flow-content">
                     <h4>서버 → S3 서명</h4>
-                    <p>S3Presigner로 10분 유효 PUT URL 생성. Content-Type이 서명에 고정되어 다른 타입 업로드 불가.</p>
+                    <p>S3Presigner로 10분 유효 PUT URL 생성. Content-Type 헤더를 서명에 포함해 요청 헤더 변조를 제한.</p>
                 </div>
             </div>
             <div class="flow-step">
@@ -671,6 +706,11 @@ private static final Set&lt;String&gt; ALLOWED = Set.of(
     "image/heic", "image/heif", "image/avif"
 );
 
+// key prefix
+users/{userId}/profile/{uuid}.jpg
+plogging/{userId}/maps/{uuid}.png
+plogging/{userId}/photos/{uuid}.jpg
+
 // Presigned PUT URL 생성 (AWS SDK v2)
 PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
     .signatureDuration(Duration.ofMinutes(10))
@@ -680,8 +720,8 @@ PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
         .contentType(contentType))   // Content-Type 고정 서명
     .build();
 
-// 기존 이미지 삭제 (버킷 소유 확인 후, 실패 시 예외 전파 안 함)
-void deleteIfOwnedByBucket(String imageUrl) { ... }</code></pre>
+// 기존 이미지 삭제 (버킷 소유 URL일 때만, 실패 시 예외 전파 안 함)
+void deleteIfOwnedByBucket(String objectUrl) { ... }</code></pre>
     </section>
 
     <!-- Plogging -->
@@ -705,15 +745,25 @@ public void addPloggingTimeSeconds(long seconds) {
 
         <h3>플로깅 완료 저장 — sequence 부여</h3>
         <pre><code>// PloggingService.complete()
-PloggingSession session = PloggingSession.create(user, request);
-ploggingSessionRepository.save(session);
+PloggingSession session = PloggingSession.create(
+    user, request.mode(),
+    request.startedAt(), request.finishedAt(),
+    request.distanceMeters(), request.stepCount(), request.caloriesBurned(),
+    request.ploggingSeconds(), request.restSeconds(),
+    request.placeName(),
+    request.startLatitude(), request.startLongitude(),
+    request.endLatitude(), request.endLongitude(),
+    request.mapImageUrl()
+);
+PloggingSession savedSession = ploggingSessionRepository.save(session);
 
 // RoutePoint와 Photo에 순서 보장
 for (int i = 0; i &lt; request.routePoints().size(); i++) {
-    PloggingRoutePoint.create(session, request.routePoints().get(i), i);
+    RoutePointRequest rp = request.routePoints().get(i);
+    PloggingRoutePoint.create(savedSession, i, rp.latitude(), rp.longitude());
 }
 for (int i = 0; i &lt; request.photoUrls().size(); i++) {
-    PloggingPhoto.create(session, request.photoUrls().get(i), i);
+    PloggingPhoto.create(savedSession, i, request.photoUrls().get(i));
 }
 
 // 사용자 경험치·레벨·칭호 갱신
@@ -738,12 +788,16 @@ interface PloggingStatsView {
 
         <h3>주간 통계 — 기록 없는 날 0 채우기</h3>
         <pre><code>// DB 결과를 날짜 Map으로 변환 후 7일치 순회
-Map&lt;LocalDate, SessionAggregate&gt; byDate = sessions.stream()
-    .collect(groupingBy(s -> s.getStartedAt().toLocalDate(), ...));
+Map&lt;LocalDate, List&lt;SessionStatsView&gt;&gt; byDate = sessions.stream()
+    .collect(Collectors.groupingBy(s -> s.getFinishedAt().toLocalDate()));
 
 return IntStream.range(0, 7)
-    .mapToObj(i -> startDate.plusDays(i))
-    .map(date -> DailyStatsResponse.from(date, byDate.getOrDefault(date, EMPTY)))
+    .mapToObj(startDate::plusDays)
+    .map(date -> {
+        List&lt;SessionStatsView&gt; daySessions = byDate.getOrDefault(date, List.of());
+        SessionAggregate agg = SessionAggregate.from(daySessions);
+        return new DailyStatsResponse(date, date.getDayOfWeek(), ...);
+    })
     .toList();</code></pre>
 
         <h3>private record로 단일 루프 다중 필드 집계</h3>
@@ -826,24 +880,159 @@ ORDER BY distance ASC</code></pre>
             <h2>경로 추천</h2>
         </div>
 
-        <h3>외부 라우팅 엔진 연동 + 재시도 로직</h3>
-        <pre><code>// RouteEngineClient: 3회 재시도, 타임아웃 설정
-HttpClient client = HttpClient.newBuilder()
-    .connectTimeout(Duration.ofSeconds(5))
-    .build();
+        <h3>API 역할</h3>
+        <p>
+            <span class="inline-code">GET /api/v1/routes</span>는 앱에서 받은 현재 위치, 목표 시간, 모드를 바탕으로
+            외부 Route Engine의 <span class="inline-code">GET /api/v1/route</span>를 호출해 추천 경로 목록을 반환합니다.
+            Plover 백엔드는 경로 계산 자체보다 인증 없는 공개 API 진입점, 요청값 변환, 외부 호출 안정화, 캐시를 담당합니다.
+        </p>
 
-// 500번대 응답 또는 연결 오류 시 재시도 (최대 3회)
-for (int attempt = 0; attempt &lt; 3; attempt++) {
-    try {
-        HttpResponse&lt;String&gt; response = client.send(request, ...);
-        if (response.statusCode() &lt; 500) return parse(response);
-    } catch (IOException e) {
-        if (attempt == 2) throw new RouteException(ROUTE_ENGINE_CONNECTION_FAILED);
-    }
+        <pre><code>// RouteController: 앱의 time(분)을 Route Engine distance(m)로 변환
+@GetMapping
+public ResponseEntity&lt;RouteDto.Response&gt; getPloggingRoute(@Valid @ModelAttribute RouteDto.Request request) {
+    int distance = (int) ((request.time() / 60.0) * 5000);
+    RouteDto.Response response = routeEngineClient.getRoute(
+        request.lat(), request.lon(), distance, request.mode());
+    return ResponseEntity.ok(response);
 }
 
-// 요청: lat, lon, time(분) → 거리 계산 (분당 5km 기준)
-// 응답: { distanceMeter, timeMillis, encodedPath }</code></pre>
+// 요청: lat, lon, time(분), mode
+// 응답: { routes: [{ distanceMeter, timeMillis, encodedPath, ploggingScore }] }</code></pre>
+
+        <h3>외부 Route Engine 호출 안정화</h3>
+        <pre><code>// RouteEngineClient
+private static final int MAX_RETRIES = 2;
+private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(2);
+private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
+private static final long RETRY_DELAY_MILLIS = 300L;
+
+// ResourceAccessException 또는 HttpServerErrorException만 재시도
+for (int i = 0; i &lt; MAX_RETRIES; i++) {
+    try {
+        RouteInfo[] routeInfos = restClient.get()
+            .uri(uriBuilder -> uriBuilder
+                .path("/api/v1/route")
+                .queryParam("lat", lat)
+                .queryParam("lon", lon)
+                .queryParam("distance", distance)
+                .queryParam("mode", mode)
+                .build())
+            .retrieve()
+            .body(RouteInfo[].class);
+        return new Response(routeInfos != null ? Arrays.asList(routeInfos) : Collections.emptyList());
+    } catch (ResourceAccessException | HttpServerErrorException e) {
+        if (i &lt; MAX_RETRIES - 1) Thread.sleep(RETRY_DELAY_MILLIS);
+    }
+}
+throw new RouteException(ROUTE_ENGINE_CONNECTION_FAILED);</code></pre>
+
+        <h3>Caffeine 기반 경로 응답 캐시</h3>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>항목</th><th>값</th><th>의미</th></tr></thead>
+                <tbody>
+                <tr><td>저장 위치</td><td>JVM heap</td><td>별도 Redis 없이 애플리케이션 프로세스 안에 저장</td></tr>
+                <tr><td>라이브러리</td><td>Caffeine</td><td>Java 인메모리 캐시</td></tr>
+                <tr><td>최대 엔트리</td><td>1,000</td><td>메모리 사용량 상한</td></tr>
+                <tr><td>TTL</td><td>5분</td><td>경로 추천 결과의 짧은 재사용</td></tr>
+                <tr><td>좌표 버킷</td><td>0.0005도</td><td>한국 기준 대략 위도 55m, 경도 44~45m 단위</td></tr>
+                <tr><td>캐싱 대상</td><td>성공 응답</td><td>외부 엔진 실패는 캐시하지 않음</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <pre><code>private final Cache&lt;RouteCacheKey, RouteDto.Response&gt; routeCache = Caffeine.newBuilder()
+    .maximumSize(1_000L)
+    .expireAfterWrite(Duration.ofMinutes(5))
+    .build();
+
+public RouteDto.Response getRoute(double lat, double lon, int distance, String mode) {
+    String normalizedMode = normalizeMode(mode);
+    RouteCacheKey key = RouteCacheKey.from(lat, lon, distance, normalizedMode);
+    return routeCache.get(key, ignored -> requestRouteFromEngine(lat, lon, distance, normalizedMode));
+}
+
+private String normalizeMode(String mode) {
+    if (mode == null || mode.isBlank()) return "PLOGGING";
+    return mode.trim().toUpperCase(Locale.ROOT);
+}
+
+private record RouteCacheKey(long latBucket, long lonBucket, int distance, String mode) {
+    private static RouteCacheKey from(double lat, double lon, int distance, String mode) {
+        return new RouteCacheKey(toBucket(lat), toBucket(lon), distance, mode);
+    }
+    private static long toBucket(double coordinate) {
+        return Math.round(coordinate / 0.0005);
+    }
+}</code></pre>
+
+        <div class="highlight-box">
+            <strong>캐시 tradeoff:</strong> 아주 가까운 좌표 요청은 같은 추천 경로를 재사용할 수 있습니다.
+            플로깅 추천 경로에서는 수십 미터 단위의 근접 위치를 같은 요청으로 묶어도 사용자 경험상 수용 가능하다고 보고,
+            외부 Route Engine 반복 호출 비용을 크게 줄이는 쪽을 택했습니다.
+        </div>
+    </section>
+
+    <!-- Performance -->
+    <section id="performance">
+        <div class="section-header">
+            <span class="section-icon">📈</span>
+            <h2>성능 개선: Route API 병목 완화</h2>
+        </div>
+
+        <h3>문제 상황</h3>
+        <p>
+            k6 stress 테스트에서 <span class="inline-code">GET /api/v1/routes</span>가 주요 병목으로 확인되었습니다.
+            제한된 위치 데이터를 반복 사용하는 부하 테스트 특성상 동일하거나 매우 유사한 좌표 요청이 많았고,
+            기존 구조는 매 요청마다 외부 Route Engine을 호출했습니다.
+        </p>
+
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>지표</th><th>개선 전</th><th>개선 후</th><th>변화</th></tr></thead>
+                <tbody>
+                <tr><td>route avg</td><td>956.06ms</td><td>18.87ms</td><td>98.0% 감소</td></tr>
+                <tr><td>route p95</td><td>3149.45ms</td><td>35.64ms</td><td>98.9% 감소</td></tr>
+                <tr><td>route p99</td><td>4577.34ms</td><td>104.18ms</td><td>97.7% 감소</td></tr>
+                <tr><td>route max</td><td>10322.25ms</td><td>434.67ms</td><td>95.8% 감소</td></tr>
+                <tr><td>전체 p95</td><td>483.51ms</td><td>73.95ms</td><td>84.7% 감소</td></tr>
+                <tr><td>전체 p99</td><td>2307.46ms</td><td>170.11ms</td><td>92.6% 감소</td></tr>
+                <tr><td>RPS</td><td>49.47 req/s</td><td>60.21 req/s</td><td>21.7% 증가</td></tr>
+                <tr><td>HTTP 실패율</td><td>0.0026%</td><td>0%</td><td>실패 제거</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>개선 방향</h3>
+        <div class="flow">
+            <div class="flow-step">
+                <div class="flow-num">1</div>
+                <div class="flow-content">
+                    <h4>반복 호출 원인 확인</h4>
+                    <p>비슷한 위도/경도, 같은 시간, 같은 mode 요청이 외부 Route Engine으로 반복 전달되는 구조를 확인했습니다.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">2</div>
+                <div class="flow-content">
+                    <h4>요청 key 정규화</h4>
+                    <p>mode는 대문자와 기본값으로 정규화하고, 좌표는 0.0005도 버킷으로 묶어 캐시 적중률을 높였습니다.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">3</div>
+                <div class="flow-content">
+                    <h4>성공 응답만 캐시</h4>
+                    <p>외부 엔진 실패 응답은 캐시하지 않아 일시 장애가 5분 동안 고정되는 상황을 피했습니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="highlight-box">
+            <strong>결론:</strong> 병목은 Spring Boot 내부 계산보다 외부 Route Engine 반복 호출 비용에 가까웠습니다.
+            Caffeine 캐시 적용 후 동일/유사 좌표가 반복되는 상황에서 route API p95가 3149.45ms에서 35.64ms로 낮아졌습니다.
+            단, 실제 운영 트래픽에서 모든 좌표가 매번 크게 다르면 캐시 적중률에 따라 개선 폭은 달라집니다.
+        </div>
     </section>
 
     <!-- 예외 처리 -->
@@ -862,7 +1051,7 @@ public interface ErrorCode {
 // 2. 공통 에러코드
 public enum CommonErrorCode implements ErrorCode {
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다."),
-    INVALID_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 형식입니다.");
+    INVALID_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 형식입니다. (jpeg, png, webp, heic, heif, avif)");
 }
 
 // 3. 도메인 에러코드 (각 도메인의 exception/ 패키지)
@@ -939,18 +1128,104 @@ public Executor aiAnalysisExecutor() {
     return executor;
 }
 
+// PloggingAnalysisController.java
+ploggingImageValidator.validate(image);
+byte[] imageBytes = image.getBytes();
+ploggingAnalysisService.analyzeAsync(
+    imageBytes, image.getOriginalFilename(), latitude, longitude, LocalDateTime.now());
+
 // PloggingAnalysisService.java
 @Async("aiAnalysisExecutor")
-public CompletableFuture&lt;Void&gt; analyze(MultipartFile image, Long sessionId) {
-    // AI 서버에 multipart/form-data로 이미지 전송
-    // 응답 파싱 → TrashDetection 저장
-    // 네트워크 오류 → 로깅 후 graceful 처리 (예외 전파 안 함)
-}</code></pre>
+public void analyzeAsync(byte[] imageBytes, String filename, Double latitude, Double longitude, LocalDateTime reportedAt) {
+    AiResponseDto response = callAiServer(imageBytes, filename, latitude, longitude);
+    if (response == null || !"success".equals(response.status())) return;
+    saveDetections(response, latitude, longitude, reportedAt);
+}
+
+// AI 서버 요청: multipart/form-data file, latitude, longitude + X-API-Key
+// 저장: MySQL trash_detections, PostgreSQL raw_trash_reports(설정된 경우)</code></pre>
 
         <div class="highlight-box">
             <strong>이유:</strong> AI 분석은 외부 서버 호출로 수 초가 걸리는 I/O 작업입니다.
-            <span class="inline-code">@Async</span>로 별도 스레드풀에서 처리하면 클라이언트는 플로깅 완료 응답을 즉시 받고,
-            분석은 백그라운드에서 진행됩니다.
+            <span class="inline-code">POST /api/plogging/analyze</span>는 검증과 바이트 읽기까지만 요청 스레드에서 처리하고,
+            외부 AI 서버 호출과 DB 저장은 별도 스레드풀에서 진행합니다.
+        </div>
+    </section>
+
+    <!-- k6 -->
+    <section id="k6">
+        <div class="section-header">
+            <span class="section-icon">🧪</span>
+            <h2>k6 부하 테스트</h2>
+        </div>
+
+        <p>
+            k6는 여러 가상 사용자(VU)가 API를 반복 호출하는 상황을 스크립트로 재현해 응답 시간, 실패율, RPS, threshold 통과 여부를 측정하는 도구입니다.
+            이 프로젝트는 t2.micro급 인스턴스와 실제 사용자 10명 미만 조건을 고려해 읽기 중심의 보수적인 시나리오를 기본값으로 둡니다.
+        </p>
+
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>파일</th><th>목적</th><th>특징</th></tr></thead>
+                <tbody>
+                <tr><td>smoke-test.js</td><td>기본 정상 동작 확인</td><td>1 VU, 공개/인증 읽기, presigned URL, opt-in 쓰기</td></tr>
+                <tr><td>load-test.js</td><td>일반 부하 확인</td><td>5 → 10 → 20 → 30 VU로 증가</td></tr>
+                <tr><td>stress-test.js</td><td>병목 확인</td><td>10 → 20 → 30 → 50 VU로 증가</td></tr>
+                <tr><td>ai-analysis-smoke-test.js</td><td>AI 분석 별도 확인</td><td>RUN_HEAVY_API=true일 때만 외부 AI API 호출</td></tr>
+                <tr><td>summary.js</td><td>결과 리포트 생성</td><td>JSON/HTML 요약과 stdout 핵심 지표 출력</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>테스트 대상 API</h3>
+        <pre><code>// common.js 주요 함수
+getNearbyTrashBins();      // GET /api/facilities/trash-bins
+getNearbyToilets();        // GET /api/facilities/toilets
+getRouteRecommendation();  // GET /api/v1/routes
+getMyInfo();               // GET /api/users/me
+getMyPloggingStats();      // GET /api/users/me/plogging-stats
+listPloggingSessions();    // GET /api/plogging-sessions
+getMonthlyStats();         // GET /api/plogging-sessions/monthly
+getWeeklyStats();          // GET /api/plogging-sessions/weekly
+getUploadUrlsSmoke();      // profile/map/photo presigned URL
+completePloggingWrite();   // POST /api/plogging-sessions/complete, INCLUDE_WRITE=true일 때만</code></pre>
+
+        <h3>환경변수와 실행</h3>
+        <pre><code># PowerShell 예시
+$env:BASE_URL = "http://localhost:8080"
+$env:ACCESS_TOKEN = "&lt;JWT&gt;"
+$env:INCLUDE_WRITE = "false"
+$env:SLEEP_SECONDS = "1"
+k6 run k6/scenarios/smoke-test.js
+k6 run k6/scenarios/load-test.js
+k6 run k6/scenarios/stress-test.js
+
+# AI 분석은 외부 AI 서버와 DB 저장을 건드리므로 별도 opt-in
+$env:RUN_HEAVY_API = "true"
+k6 run k6/scenarios/ai-analysis-smoke-test.js</code></pre>
+
+        <h3>threshold와 산출물</h3>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>지표</th><th>의미</th><th>활용</th></tr></thead>
+                <tbody>
+                <tr><td>http_req_failed</td><td>HTTP 실패율</td><td>load는 1% 미만, stress는 5% 미만 기준</td></tr>
+                <tr><td>http_req_duration p95/p99</td><td>대부분 요청의 응답 시간</td><td>read/route/write type 태그별 병목 확인</td></tr>
+                <tr><td>checks</td><td>응답 status/body 검증 성공률</td><td>기능 정상성 확인</td></tr>
+                <tr><td>http_reqs rate</td><td>초당 요청 수(RPS)</td><td>처리량 비교</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <pre><code>k6/results/smoke-summary-YYYYMMDD-HHmmss.json
+k6/results/smoke-summary-YYYYMMDD-HHmmss.html
+k6/results/load-summary-YYYYMMDD-HHmmss.json
+k6/results/load-summary-YYYYMMDD-HHmmss.html
+k6/results/stress-summary-YYYYMMDD-HHmmss.json
+k6/results/stress-summary-YYYYMMDD-HHmmss.html</code></pre>
+
+        <div class="highlight-box">
+            <strong>운영 데이터 보호:</strong> 프로필 이미지 변경, 삭제, AI 분석처럼 외부 리소스나 운영 데이터를 오염시킬 수 있는 API는 기본 load/stress에서 제외하거나 명시적 환경변수로만 실행합니다.
         </div>
     </section>
 
@@ -1015,13 +1290,61 @@ public CompletableFuture&lt;Void&gt; analyze(MultipartFile image, Long sessionId
     -- 카카오 ID 12345 != 애플 ID 12345 → 복합 유니크로 구분
 );</code></pre>
 
-        <h3>공간 인덱스 (시설 검색)</h3>
-        <pre><code>-- ST_Distance_Sphere 함수로 반경 1000m 이내 조회
--- (latitude, longitude) 컬럼에 공간 인덱스 설정 시 성능 향상
-SELECT *, ST_Distance_Sphere(POINT(lng, lat), POINT(:lng, :lat)) AS distance
+        <h3>plogging_sessions 중심 저장 구조</h3>
+        <pre><code>plogging_sessions
+├── user_id               users.id FK
+├── mode                  WALKING | RUNNING 등 PloggingMode
+├── started_at / finished_at
+├── distance_meters / step_count / calories_burned
+├── plogging_seconds / rest_seconds
+├── start_latitude / start_longitude
+├── end_latitude / end_longitude
+└── map_image_url
+
+plogging_route_points
+├── plogging_session_id   plogging_sessions.id FK
+├── sequence              경로 좌표 순서
+├── latitude
+└── longitude
+
+plogging_photos
+├── plogging_session_id   plogging_sessions.id FK
+├── sequence              사진 순서
+└── image_url             S3 objectUrl</code></pre>
+
+        <p>
+            플로깅 완료 API는 세션을 먼저 저장한 뒤 저장된 세션 ID를 기준으로 경로 좌표와 사진을 각각 bulk save합니다.
+            목록 조회는 <span class="inline-code">Slice</span>를 사용해 COUNT 쿼리 없이 다음 페이지 여부만 확인합니다.
+        </p>
+
+        <h3>AI 감지 결과 저장소</h3>
+        <pre><code>trash_detections
+├── id
+├── latitude / longitude
+├── trash_type
+├── count
+└── confidence
+
+-- PostgreSQL datasource가 설정된 경우에만 추가 저장
+raw_trash_reports
+├── source_id     "trash_detection:{id}"
+├── provider      "plover"
+├── reported_at
+└── geometry      ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)</code></pre>
+
+        <p>
+            서비스 조회용 데이터는 MySQL <span class="inline-code">trash_detections</span>에 저장합니다.
+            PostgreSQL <span class="inline-code">JdbcTemplate</span> Bean이 있으면 공간 분석 원천 데이터로
+            <span class="inline-code">raw_trash_reports</span>에도 같은 제보 위치를 저장합니다.
+        </p>
+
+        <h3>공간 검색 (시설 검색)</h3>
+        <pre><code>-- TrashBinRepository / ToiletRepository native query
+SELECT id, name, road_address AS roadAddress, latitude, longitude,
+       ST_Distance_Sphere(POINT(longitude, latitude), POINT(:lng, :lat)) AS distanceMeters
 FROM trash_bins
-WHERE ST_Distance_Sphere(POINT(lng, lat), POINT(:lng, :lat)) &lt;= 1000
-ORDER BY distance ASC;</code></pre>
+WHERE ST_Distance_Sphere(POINT(longitude, latitude), POINT(:lng, :lat)) &lt;= :radius
+ORDER BY distanceMeters ASC;</code></pre>
 
         <h3>JPA DDL 설정</h3>
         <pre><code>spring.jpa.hibernate.ddl-auto=update   # 개발: 스키마 자동 반영
@@ -1082,7 +1405,7 @@ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect</code
             <div class="qa">
                 <div class="qa-q"><span class="qa-q-icon">Q</span>S3에 파일을 직접 받지 않고 Presigned URL을 쓰는 이유는?</div>
                 <div class="qa-a">
-                    서버가 파일을 받으면 <strong>대용량 파일이 서버 메모리와 네트워크를 점유</strong>합니다. Presigned URL 방식은 서버가 S3에 서명된 임시 URL을 발급하고, 클라이언트가 그 URL로 S3에 직접 PUT 업로드합니다. 서버는 URL 발급과 DB 저장만 처리하므로 서버 부하를 줄이고 S3 대역폭을 직접 활용합니다. URL은 10분 유효하며 Content-Type이 서명에 고정돼 다른 파일 타입 업로드가 불가합니다.
+                    서버가 파일을 받으면 <strong>대용량 파일이 서버 메모리와 네트워크를 점유</strong>합니다. Presigned URL 방식은 서버가 S3에 서명된 임시 URL을 발급하고, 클라이언트가 그 URL로 S3에 직접 PUT 업로드합니다. 서버는 URL 발급과 DB 저장만 처리하므로 서버 부하를 줄이고 S3 대역폭을 직접 활용합니다. URL은 10분 유효하며 Content-Type 헤더가 서명에 포함됩니다. 다만 S3가 파일 내부 바이트까지 검증하는 것은 아니므로, 서버가 직접 파일을 받는 AI 분석 API에서는 별도의 Magic Number와 이미지 헤더 검증을 수행합니다.
                 </div>
             </div>
 
@@ -1103,7 +1426,16 @@ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect</code
             <div class="qa">
                 <div class="qa-q"><span class="qa-q-icon">Q</span>AI 분석을 @Async로 처리한 이유는?</div>
                 <div class="qa-a">
-                    AI 이미지 분석은 외부 서버 호출로 수 초가 소요됩니다. 동기로 처리하면 클라이언트가 그만큼 대기해야 합니다. <code>@Async("aiAnalysisExecutor")</code>로 별도 스레드풀에서 비동기 실행하면 플로깅 완료 응답을 즉시 반환하고, 분석은 백그라운드에서 처리됩니다. ThreadPoolTaskExecutor를 직접 정의해 코어 2개, 최대 5개, 큐 100으로 제어했습니다.
+                    AI 이미지 분석은 외부 서버 호출로 수 초가 소요될 수 있습니다. 동기로 처리하면 클라이언트가 그만큼 대기해야 합니다. 컨트롤러에서는 이미지 검증과 byte 배열 변환까지만 수행하고, <code>@Async("aiAnalysisExecutor")</code>로 외부 AI 서버 호출과 DB 저장을 별도 스레드풀에서 처리합니다. 분석 접수 응답은 바로 반환하고, ThreadPoolTaskExecutor는 코어 2개, 최대 5개, 큐 100으로 제한했습니다.
+                </div>
+            </div>
+
+            <div class="qa">
+                <div class="qa-q"><span class="qa-q-icon">Q</span>Route Engine 병목을 Caffeine 캐시로 줄인 방식은?</div>
+                <div class="qa-a">
+                    <code>GET /api/v1/routes</code>는 사용자의 현재 위치, 목표 시간, mode를 받아 외부 Route Engine에 추천 경로를 요청하는 API입니다. k6 stress 테스트에서 병목은 Spring 내부 계산보다 외부 Route Engine 반복 호출에 가까웠습니다.<br><br>
+                    개선은 <strong>성공 응답만 JVM 인메모리 Caffeine 캐시에 저장</strong>하는 방식입니다. cache key는 위도·경도를 <code>0.0005</code>도 단위로 버킷화하고, 앱의 <code>time</code> 값은 <code>(time / 60.0) * 5000</code>으로 거리(m)로 변환한 값과 mode 정규화 결과를 함께 사용합니다. 실패 응답은 캐시하지 않으므로 일시 장애 결과가 재사용되지 않습니다.<br><br>
+                    정책은 최대 1000개, write 후 5분 만료입니다. 좌표 버킷은 대략 위도 55m, 서울권 경도 44~45m 정도라 매우 가까운 위치의 반복 요청을 묶을 수 있습니다. 적용 후 route API p95가 3149.45ms에서 35.64ms로 낮아져 반복 호출 상황에서 효과가 컸습니다.
                 </div>
             </div>
 
@@ -1153,8 +1485,8 @@ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect</code
             <div class="qa">
                 <div class="qa-q"><span class="qa-q-icon">Q</span>AI 분석 이미지 검증을 3단계로 설계한 이유는?</div>
                 <div class="qa-a">
-                    Content-Type과 파일 확장자는 클라이언트가 <strong>임의로 조작</strong>할 수 있어 신뢰할 수 없습니다. 예를 들어 악성 파일의 Content-Type을 <code>image/jpeg</code>로 바꿔 전송하면 1단계만으론 차단할 수 없습니다.<br><br>
-                    2단계 Magic Number 검증에서는 파일의 실제 첫 바이트를 읽어 JPEG(FF D8 FF)와 PNG(89 50 4E 47 ...)의 고정 헤더를 확인합니다. 3단계에서는 <code>ImageReader</code>로 이미지 헤더 전체를 파싱해 픽셀 수(2000만 픽셀 이상 거부)까지 검사합니다. 픽셀 제한은 Billion Laughs 공격처럼 파싱 시 메모리를 고갈시키는 이미지 폭탄을 방지합니다. JPEG와 PNG만 허용하는 이유는 AI 서버의 지원 포맷을 맞추면서 공격 면적을 최소화하기 위해서입니다.
+                    Content-Type과 파일 확장자는 클라이언트가 <strong>임의로 조작</strong>할 수 있어 단독으로 신뢰하지 않습니다. 현재 검증은 빈 파일 여부, 10MB 크기 제한, Content-Type과 확장자 일치, Magic Number, <code>ImageReader</code> 헤더 파싱, 픽셀 수 2000만 제한 순서로 진행됩니다.<br><br>
+                    Magic Number 검증에서는 파일의 실제 첫 바이트를 읽어 JPEG(<code>FF D8 FF</code>)와 PNG(<code>89 50 4E 47 ...</code>)의 고정 헤더를 확인합니다. 이후 <code>ImageReader</code>가 실제 이미지로 파싱 가능한지, reader가 판단한 포맷이 기대 포맷과 같은지, width/height가 정상인지 확인합니다. 픽셀 제한은 작은 파일처럼 보이지만 디코딩 시 큰 메모리를 쓰는 이미지 폭탄을 막기 위한 방어입니다. AI 분석 API는 JPEG와 PNG만 허용하고, 일반 S3 presigned 업로드는 별도로 webp/heic/heif/avif까지 허용합니다.
                 </div>
             </div>
 
