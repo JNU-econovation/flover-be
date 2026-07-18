@@ -8,10 +8,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 
 import java.time.Duration;
+import java.net.URI;
 import java.util.Set;
 import java.util.UUID;
 
@@ -56,6 +59,25 @@ public class S3StorageService {
         return new StorageDto.PresignedUploadUrlResponse(presigned.url().toString(), objectUrl);
     }
 
+    public void validateUploadedImage(String objectUrl, String requiredKeyPrefix, long maxFileSizeBytes) {
+        String key = validateAndExtractKey(objectUrl, requiredKeyPrefix);
+        HeadObjectResponse object;
+        try {
+            object = s3Client.headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build());
+        } catch (S3Exception e) {
+            throw new BusinessException(CommonErrorCode.IMAGE_OBJECT_NOT_FOUND);
+        }
+
+        String contentType = object.contentType();
+        validateContentType(contentType);
+        if (!key.endsWith(resolveExtension(contentType))) {
+            throw new BusinessException(CommonErrorCode.INVALID_IMAGE_URL);
+        }
+        if (object.contentLength() == null || object.contentLength() <= 0 || object.contentLength() > maxFileSizeBytes) {
+            throw new BusinessException(CommonErrorCode.IMAGE_OBJECT_SIZE_EXCEEDED);
+        }
+    }
+
     // 우리 버킷 소유 URL이면 삭제. 실패해도 예외 전파 안 함 (업데이트를 막지 않음)
     public void deleteIfOwnedByBucket(String objectUrl) {
         if (!isOwnedByBucket(objectUrl)) {
@@ -74,6 +96,33 @@ public class S3StorageService {
 
     private boolean isOwnedByBucket(String objectUrl) {
         return objectUrl != null && objectUrl.startsWith("https://%s.s3.".formatted(bucket));
+    }
+
+    private String validateAndExtractKey(String objectUrl, String requiredKeyPrefix) {
+        try {
+            URI uri = URI.create(objectUrl);
+            String expectedHost = "%s.s3.%s.amazonaws.com".formatted(bucket, region);
+            if (!"https".equalsIgnoreCase(uri.getScheme())
+                    || !expectedHost.equalsIgnoreCase(uri.getHost())
+                    || uri.getPort() != -1
+                    || uri.getUserInfo() != null
+                    || uri.getQuery() != null
+                    || uri.getFragment() != null) {
+                throw new BusinessException(CommonErrorCode.INVALID_IMAGE_URL);
+            }
+
+            String path = uri.getPath();
+            if (path == null || !path.startsWith("/")) {
+                throw new BusinessException(CommonErrorCode.INVALID_IMAGE_URL);
+            }
+            String key = path.substring(1);
+            if (!key.startsWith(requiredKeyPrefix + "/") || key.length() <= requiredKeyPrefix.length() + 1) {
+                throw new BusinessException(CommonErrorCode.INVALID_IMAGE_URL);
+            }
+            return key;
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(CommonErrorCode.INVALID_IMAGE_URL);
+        }
     }
 
     private String extractKey(String objectUrl) {

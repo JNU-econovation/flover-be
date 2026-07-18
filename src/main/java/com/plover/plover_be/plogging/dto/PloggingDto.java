@@ -32,7 +32,8 @@ public class PloggingDto {
             @NotNull @DecimalMin("-180.0") @DecimalMax("180.0") Double endLongitude,
             @NotNull @Valid List<RoutePointRequest> routePoints,
             String mapImageUrl,
-            @NotNull List<@NotBlank String> photoUrls
+            @NotNull List<@NotBlank String> photoUrls,
+            Long crewPloggingSessionId
     ) {}
 
     public record RoutePointRequest(

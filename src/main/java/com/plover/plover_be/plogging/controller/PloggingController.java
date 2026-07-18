@@ -1,5 +1,6 @@
 package com.plover.plover_be.plogging.controller;
 
+import com.plover.plover_be.crew.service.CrewPloggingCompletionService;
 import com.plover.plover_be.global.auth.LoginUserId;
 import com.plover.plover_be.global.storage.StorageDto;
 import com.plover.plover_be.plogging.dto.PloggingDto;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PloggingController {
 
     private final PloggingService ploggingService;
+    private final CrewPloggingCompletionService crewPloggingCompletionService;
 
     @Operation(summary = "플로깅 기록 전체 조회", description = "로그인한 사용자의 플로깅 기록 목록을 최신순으로 반환합니다. 무한 스크롤을 위한 페이징을 지원합니다.")
     @GetMapping
@@ -77,7 +79,10 @@ public class PloggingController {
             @LoginUserId Long userId,
             @RequestBody @Valid PloggingDto.CompleteRequest request
     ) {
-        return ResponseEntity.ok(ploggingService.complete(userId, request));
+        if (request.crewPloggingSessionId() == null) {
+            return ResponseEntity.ok(ploggingService.complete(userId, request));
+        }
+        return ResponseEntity.ok(crewPloggingCompletionService.complete(userId, request));
     }
 
     @Operation(summary = "지도 이미지 업로드 URL 발급",
