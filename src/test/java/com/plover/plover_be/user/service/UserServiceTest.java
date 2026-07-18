@@ -1,5 +1,6 @@
 package com.plover.plover_be.user.service;
 
+import com.plover.plover_be.crew.service.CrewDeletionService;
 import com.plover.plover_be.global.storage.StorageDto;
 import com.plover.plover_be.plogging.repository.PloggingPhotoRepository;
 import com.plover.plover_be.plogging.repository.PloggingRoutePointRepository;
@@ -45,6 +46,7 @@ class UserServiceTest {
     @Mock private PloggingSessionRepository ploggingSessionRepository;
     @Mock private PloggingPhotoRepository ploggingPhotoRepository;
     @Mock private PloggingRoutePointRepository ploggingRoutePointRepository;
+    @Mock private CrewDeletionService crewDeletionService;
     @InjectMocks private UserService userService;
 
     private static User kakaoUser(String nickname, String imageUrl) {
@@ -374,7 +376,8 @@ class UserServiceTest {
             userService.deleteUser(userId);
 
             // then - DB 삭제가 FK 순서대로 실행됐는지 확인
-            InOrder inOrder = inOrder(ploggingPhotoRepository, ploggingRoutePointRepository, ploggingSessionRepository, userRepository);
+            InOrder inOrder = inOrder(crewDeletionService, ploggingPhotoRepository, ploggingRoutePointRepository, ploggingSessionRepository, userRepository);
+            inOrder.verify(crewDeletionService).deleteOwnedCrewsAndUserReferences(userId);
             inOrder.verify(ploggingPhotoRepository).deleteByPloggingSessionUserId(userId);
             inOrder.verify(ploggingRoutePointRepository).deleteByPloggingSessionUserId(userId);
             inOrder.verify(ploggingSessionRepository).deleteByUserId(userId);
@@ -403,6 +406,7 @@ class UserServiceTest {
 
         // then
         verify(profileImageStorageService, never()).deleteIfOwnedByBucket(any());
+        verify(crewDeletionService).deleteOwnedCrewsAndUserReferences(userId);
         verify(ploggingPhotoRepository).deleteByPloggingSessionUserId(userId);
         verify(ploggingRoutePointRepository).deleteByPloggingSessionUserId(userId);
         verify(ploggingSessionRepository).deleteByUserId(userId);
@@ -420,5 +424,20 @@ class UserServiceTest {
                 .isInstanceOf(UserException.class)
                 .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.USER_NOT_FOUND);
         verify(userRepository, never()).delete(any(User.class));
+    }
+
+    @DisplayName("크루장도 소유 크루 정리 후 계정을 삭제할 수 있다")
+    @Test
+    void delete_user_allows_crew_leader_after_crew_cleanup() {
+        // given
+        Long userId = 1L;
+        User user = kakaoUser("크루장", null);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        // when
+        userService.deleteUser(userId);
+
+        // then
+        verify(crewDeletionService).deleteOwnedCrewsAndUserReferences(userId);
+        verify(userRepository).delete(user);
     }
 }
