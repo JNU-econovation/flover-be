@@ -6,6 +6,7 @@ import com.plover.plover_be.global.storage.StorageDto;
 import com.plover.plover_be.plogging.dto.PloggingDto;
 import com.plover.plover_be.plogging.service.PloggingService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Plogging", description = "플로깅 API")
+@SecurityRequirement(name = "bearerAuth")
 @Validated
 @RestController
 @RequestMapping("/api/plogging-sessions")
@@ -75,7 +77,7 @@ public class PloggingController {
     }
 
     @Operation(summary = "플로깅 완료 기록 저장",
-            description = "플로깅 완료 데이터를 저장합니다. 지도 이미지와 인증샷은 S3 URL로 전달합니다.")
+            description = "플로깅 완료 데이터를 저장합니다. crewPloggingSessionId가 null이면 기존 개인 완료로 처리합니다. 값이 있으면 FREE 모드 및 해당 세션 참가를 검증하고 IN_PROGRESS 또는 COMPLETING에서 기존 개인 완료 저장 흐름으로 한 번만 제출합니다. IN_PROGRESS 조기 완료는 세션 전체 종료와 별개이며, 사진은 S3에 한 번 업로드한 같은 객체를 개인 기록과 크루 공유 앨범에서 참조합니다. 중복 제출은 409입니다.")
     @PostMapping("/complete")
     public ResponseEntity<PloggingDto.CompleteResponse> completePlogging(
             @LoginUserId Long userId,

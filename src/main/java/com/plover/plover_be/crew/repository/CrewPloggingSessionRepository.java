@@ -24,6 +24,17 @@ public interface CrewPloggingSessionRepository extends JpaRepository<CrewPloggin
     );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT s FROM CrewPloggingSession s
+            WHERE s.crew.id = :crewId AND s.status IN :statuses
+            ORDER BY s.createdAt DESC
+            """)
+    Optional<CrewPloggingSession> findActiveByCrewIdForUpdate(
+            @Param("crewId") Long crewId,
+            @Param("statuses") Collection<CrewPloggingStatus> statuses
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM CrewPloggingSession s JOIN FETCH s.crew WHERE s.id = :sessionId")
     Optional<CrewPloggingSession> findByIdForUpdate(@Param("sessionId") Long sessionId);
 

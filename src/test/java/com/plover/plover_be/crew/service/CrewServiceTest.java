@@ -19,6 +19,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -38,6 +39,7 @@ class CrewServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private CrewPloggingResponseMapper responseMapper;
     @Mock private CrewPloggingPhotoSummaryReader photoSummaryReader;
+    @Mock private CrewJoinCodeGenerator joinCodeGenerator;
     @InjectMocks private CrewService crewService;
 
     @DisplayName("크루 생성자는 크루장 멤버십으로 함께 저장된다")
@@ -47,8 +49,8 @@ class CrewServiceTest {
         Long userId = 1L;
         User user = user();
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(crewRepository.existsByJoinCode(any())).willReturn(false);
-        given(crewRepository.save(any(Crew.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(joinCodeGenerator.generate()).willReturn("000527");
+        given(crewRepository.saveAndFlush(any(Crew.class))).willAnswer(invocation -> invocation.getArgument(0));
         ArgumentCaptor<CrewMember> memberCaptor = ArgumentCaptor.forClass(CrewMember.class);
 
         // when
@@ -58,7 +60,20 @@ class CrewServiceTest {
         verify(crewMemberRepository).save(memberCaptor.capture());
         assertThat(memberCaptor.getValue().getRole()).isEqualTo(CrewRole.LEADER);
         assertThat(memberCaptor.getValue().getStatus()).isEqualTo(CrewMemberStatus.ACTIVE);
-        assertThat(response.joinCode()).matches("[A-Z0-9]{8}");
+        assertThat(response.joinCode()).isEqualTo("000527");
+    }
+
+    @DisplayName("사전 검사 후 INSERT에서 참여 코드가 충돌하면 409 비즈니스 예외로 변환한다")
+    @Test
+    void create_crew_converts_database_join_code_collision() {
+        Long userId = 1L;
+        given(userRepository.findById(userId)).willReturn(Optional.of(user()));
+        given(joinCodeGenerator.generate()).willReturn("123456");
+        given(crewRepository.saveAndFlush(any(Crew.class)))
+                .willThrow(new DataIntegrityViolationException("duplicate join code"));
+
+        assertThatThrownBy(() -> crewService.createCrew(userId, "우리 크루"))
+                .isInstanceOf(CrewException.class);
     }
 
     @DisplayName("활성 크루원이 같은 참여 코드로 다시 가입하면 예외가 발생한다")
@@ -67,16 +82,38 @@ class CrewServiceTest {
         // given
         Long userId = 1L;
         User user = user();
-        Crew crew = Crew.create("우리 크루", "A1B2C3D4", user);
+        Crew crew = Crew.create("우리 크루", "123456", user);
         CrewMember member = CrewMember.create(crew, user, CrewRole.MEMBER);
-        given(crewRepository.findByJoinCode("A1B2C3D4")).willReturn(Optional.of(crew));
+        given(crewRepository.findByJoinCode("123456")).willReturn(Optional.of(crew));
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(crewMemberRepository.findByCrewIdAndUserIdForUpdate(crew.getId(), userId))
                 .willReturn(Optional.of(member));
 
         // when & then
-        assertThatThrownBy(() -> crewService.joinCrew(userId, "a1b2c3d4"))
+        assertThatThrownBy(() -> crewService.joinCrew(userId, " 123456 "))
                 .isInstanceOf(CrewException.class);
+    }
+
+    @DisplayName("숫자 6자리 참여 코드의 앞뒤 공백을 제거해 신규 크루원으로 가입한다")
+    @Test
+    void join_crew_accepts_trimmed_six_digit_code() {
+        Long userId = 2L;
+        User leader = user();
+        User joiningUser = User.create(
+                OAuthProvider.KAKAO, "joining-user", "join@test.com", "가입자", null);
+        Crew crew = Crew.create("우리 크루", "000527", leader);
+        given(crewRepository.findByJoinCode("000527")).willReturn(Optional.of(crew));
+        given(userRepository.findById(userId)).willReturn(Optional.of(joiningUser));
+        given(crewMemberRepository.findByCrewIdAndUserIdForUpdate(crew.getId(), userId))
+                .willReturn(Optional.empty());
+        given(crewMemberRepository.saveAndFlush(any(CrewMember.class)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        CrewDto.CrewResponse response = crewService.joinCrew(userId, " 000527 ");
+
+        assertThat(response.joinCode()).isEqualTo("000527");
+        assertThat(response.role()).isEqualTo(CrewRole.MEMBER);
+        verify(crewRepository).findByJoinCode("000527");
     }
 
     @DisplayName("탈퇴한 크루원은 기존 멤버십을 활성화해 재가입한다")
@@ -85,20 +122,31 @@ class CrewServiceTest {
         // given
         Long userId = 1L;
         User user = user();
-        Crew crew = Crew.create("우리 크루", "A1B2C3D4", user);
+        Crew crew = Crew.create("우리 크루", "123456", user);
         CrewMember member = CrewMember.create(crew, user, CrewRole.MEMBER);
         member.withdraw(LocalDateTime.now());
-        given(crewRepository.findByJoinCode("A1B2C3D4")).willReturn(Optional.of(crew));
+        given(crewRepository.findByJoinCode("123456")).willReturn(Optional.of(crew));
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(crewMemberRepository.findByCrewIdAndUserIdForUpdate(crew.getId(), userId))
                 .willReturn(Optional.of(member));
 
         // when
-        crewService.joinCrew(userId, "A1B2C3D4");
+        crewService.joinCrew(userId, "123456");
 
         // then
         assertThat(member.getStatus()).isEqualTo(CrewMemberStatus.ACTIVE);
         assertThat(member.getLeftAt()).isNull();
+    }
+
+    @DisplayName("6자리 숫자가 아닌 참여 코드는 거절한다")
+    @Test
+    void join_crew_rejects_invalid_join_code() {
+        assertThatThrownBy(() -> crewService.joinCrew(1L, "12A456"))
+                .isInstanceOf(CrewException.class);
+        assertThatThrownBy(() -> crewService.joinCrew(1L, "12345"))
+                .isInstanceOf(CrewException.class);
+        assertThatThrownBy(() -> crewService.joinCrew(1L, "1234567"))
+                .isInstanceOf(CrewException.class);
     }
 
     private User user() {

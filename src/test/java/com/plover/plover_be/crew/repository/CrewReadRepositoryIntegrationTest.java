@@ -173,6 +173,20 @@ class CrewReadRepositoryIntegrationTest {
                 assertThat(Hibernate.isInitialized(member.getUser())).isTrue());
     }
 
+    @DisplayName("현재 크루원 조회는 WITHDRAWN 멤버십을 제외한다")
+    @Test
+    void active_crew_members_exclude_withdrawn_membership() {
+        CrewMember withdrawn = crewMemberRepository.findById(secondMemberId).orElseThrow();
+        withdrawn.withdraw(LocalDateTime.now());
+        entityManager.flush();
+        entityManager.clear();
+
+        List<CrewMember> members = crewMemberRepository
+                .findAllByCrewIdAndStatusOrderByJoinedAtAsc(crewId, CrewMemberStatus.ACTIVE);
+
+        assertThat(members).extracting(CrewMember::getId).containsExactly(firstMemberId);
+    }
+
     @DisplayName("내 크루 멤버십은 크루와 함께 조회되고 joinedAt 내림차순을 유지한다")
     @Test
     void my_crew_memberships_fetch_crew_in_reverse_joined_order() {
@@ -216,7 +230,7 @@ class CrewReadRepositoryIntegrationTest {
     }
 
     private String joinCode() {
-        return UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        return String.format("%06d", Math.floorMod(UUID.randomUUID().hashCode(), 1_000_000));
     }
 
     private PloggingSession personalRecord(User user) {

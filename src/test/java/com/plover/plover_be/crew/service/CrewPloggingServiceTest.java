@@ -287,6 +287,81 @@ class CrewPloggingServiceTest {
         assertThat(session.getStatus()).isEqualTo(CrewPloggingStatus.CANCELED);
     }
 
+    @DisplayName("취소된 세션은 단건 폴링에서 CANCELED 참가 상태와 함께 조회된다")
+    @Test
+    void find_session_returns_canceled_session_for_active_member() {
+        Long userId = 2L;
+        User leader = user("크루장");
+        User memberUser = user("크루원");
+        Crew crew = Crew.create("크루", "123456", leader);
+        CrewMember member = CrewMember.create(crew, memberUser, CrewRole.MEMBER);
+        CrewPloggingSession session = CrewPloggingSession.create(crew);
+        session.cancel(java.time.LocalDateTime.now());
+        CrewPloggingDto.SessionResponse expected = new CrewPloggingDto.SessionResponse(
+                10L,
+                CrewPloggingStatus.CANCELED,
+                null,
+                null,
+                null,
+                true,
+                com.plover.plover_be.crew.domain.CrewPloggingParticipantStatus.CANCELED,
+                false,
+                0,
+                false
+        );
+        given(sessionRepository.findById(10L)).willReturn(Optional.of(session));
+        given(crewMemberRepository.findByCrewIdAndUserIdAndStatus(
+                crew.getId(), userId, CrewMemberStatus.ACTIVE)).willReturn(Optional.of(member));
+        given(responseMapper.toSessionResponse(session, userId)).willReturn(expected);
+
+        CrewPloggingDto.SessionResponse response = crewPloggingService.findSession(userId, 10L);
+
+        assertThat(response.status()).isEqualTo(CrewPloggingStatus.CANCELED);
+        assertThat(response.participantStatus())
+                .isEqualTo(com.plover.plover_be.crew.domain.CrewPloggingParticipantStatus.CANCELED);
+    }
+
+    @DisplayName("활성 세션 조회 상태 집합에서 CANCELED를 제외한다")
+    @Test
+    void find_active_session_excludes_canceled_status() {
+        User memberUser = user("크루원");
+        Crew crew = Crew.create("크루", "123456", user("크루장"));
+        CrewMember member = CrewMember.create(crew, memberUser, CrewRole.MEMBER);
+        given(crewMemberRepository.findByCrewIdAndUserIdAndStatus(
+                10L, 2L, CrewMemberStatus.ACTIVE)).willReturn(Optional.of(member));
+        given(sessionRepository.findFirstByCrewIdAndStatusInOrderByCreatedAtDesc(any(), any()))
+                .willReturn(Optional.empty());
+
+        CrewPloggingDto.SessionResponse response = crewPloggingService.findActiveSession(2L, 10L);
+
+        assertThat(response).isNull();
+        ArgumentCaptor<Collection<CrewPloggingStatus>> statuses = ArgumentCaptor.forClass(Collection.class);
+        verify(sessionRepository).findFirstByCrewIdAndStatusInOrderByCreatedAtDesc(
+                org.mockito.ArgumentMatchers.eq(10L), statuses.capture());
+        assertThat(statuses.getValue())
+                .containsExactlyInAnyOrder(
+                        CrewPloggingStatus.RECRUITING,
+                        CrewPloggingStatus.IN_PROGRESS,
+                        CrewPloggingStatus.COMPLETING
+                )
+                .doesNotContain(CrewPloggingStatus.CANCELED);
+    }
+
+    @DisplayName("크루 비회원은 취소된 세션을 단건 폴링할 수 없다")
+    @Test
+    void non_member_cannot_poll_canceled_session() {
+        User leader = user("크루장");
+        Crew crew = Crew.create("크루", "123456", leader);
+        CrewPloggingSession session = CrewPloggingSession.create(crew);
+        session.cancel(java.time.LocalDateTime.now());
+        given(sessionRepository.findById(10L)).willReturn(Optional.of(session));
+        given(crewMemberRepository.findByCrewIdAndUserIdAndStatus(
+                crew.getId(), 3L, CrewMemberStatus.ACTIVE)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> crewPloggingService.findSession(3L, 10L))
+                .isInstanceOf(CrewException.class);
+    }
+
     @DisplayName("전체 종료 시 전원이 이미 제출했으면 즉시 완료한다")
     @Test
     void end_session_finalizes_when_everyone_already_submitted() {

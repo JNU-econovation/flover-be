@@ -1,6 +1,7 @@
 package com.plover.plover_be.plogging.dto;
 
 import com.plover.plover_be.plogging.domain.PloggingMode;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -33,6 +34,11 @@ public class PloggingDto {
             @NotNull @Valid List<RoutePointRequest> routePoints,
             String mapImageUrl,
             @NotNull List<@NotBlank String> photoUrls,
+            @Schema(
+                    description = "같이 플로깅 개인 완료일 때만 전달하는 세션 ID. null이면 기존 개인 완료로 처리하며, 값이 있으면 IN_PROGRESS 또는 COMPLETING에서만 제출할 수 있습니다.",
+                    example = "100",
+                    nullable = true
+            )
             Long crewPloggingSessionId
     ) {}
 
