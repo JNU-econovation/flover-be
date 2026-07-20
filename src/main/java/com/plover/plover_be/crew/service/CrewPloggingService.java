@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -42,6 +43,7 @@ public class CrewPloggingService {
     private final CrewPloggingSessionRepository sessionRepository;
     private final CrewPloggingParticipantRepository participantRepository;
     private final CrewPloggingResponseMapper responseMapper;
+    private final CrewPloggingPhotoSummaryReader photoSummaryReader;
     private final CrewPloggingFinalizer finalizer;
 
     @Value("${crew.plogging.submission-grace-hours:24}")
@@ -180,8 +182,19 @@ public class CrewPloggingService {
         getActiveMemberOrThrow(crewId, userId);
         Slice<CrewPloggingSession> sessions = sessionRepository
                 .findAllByCrewIdAndStatusOrderByEndedAtDesc(crewId, CrewPloggingStatus.COMPLETED, pageable);
+        Map<Long, CrewPloggingPhotoSummaryReader.PhotoSummary> photoSummaries = photoSummaryReader.findBySessionIds(
+                sessions.getContent().stream().map(CrewPloggingSession::getId).toList()
+        );
         return new CrewPloggingDto.RecordListResponse(
-                sessions.getContent().stream().map(responseMapper::toRecordSummary).toList(),
+                sessions.getContent().stream()
+                        .map(session -> responseMapper.toRecordSummary(
+                                session,
+                                photoSummaries.getOrDefault(
+                                        session.getId(),
+                                        CrewPloggingPhotoSummaryReader.PhotoSummary.empty()
+                                )
+                        ))
+                        .toList(),
                 sessions.hasNext()
         );
     }

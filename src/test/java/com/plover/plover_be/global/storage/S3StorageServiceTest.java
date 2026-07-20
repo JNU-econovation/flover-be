@@ -1,10 +1,14 @@
 package com.plover.plover_be.global.storage;
 
 import com.plover.plover_be.global.exception.BusinessException;
+import com.plover.plover_be.global.exception.CommonErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -81,5 +85,22 @@ class S3StorageServiceTest {
         assertThatThrownBy(() -> s3StorageService.validateUploadedImage(
                 url, "plogging/7/photos", 10 * 1024 * 1024L))
                 .isInstanceOf(BusinessException.class);
+    }
+
+    @DisplayName("null, 빈 값, 잘못된 URI와 외부 URL은 이미지 URL 오류로 변환한다")
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {
+            "   ",
+            "https://[invalid",
+            "https://example.com/plogging/7/photos/id.jpg"
+    })
+    void validate_uploaded_image_rejects_invalid_object_url(String objectUrl) {
+        // when & then
+        assertThatThrownBy(() -> s3StorageService.validateUploadedImage(
+                objectUrl, "plogging/7/photos", 10 * 1024 * 1024L))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", CommonErrorCode.INVALID_IMAGE_URL);
+        verify(s3Client, never()).headObject(any(HeadObjectRequest.class));
     }
 }

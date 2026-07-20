@@ -37,6 +37,7 @@ class CrewServiceTest {
     @Mock private CrewPloggingSessionRepository crewPloggingSessionRepository;
     @Mock private UserRepository userRepository;
     @Mock private CrewPloggingResponseMapper responseMapper;
+    @Mock private CrewPloggingPhotoSummaryReader photoSummaryReader;
     @InjectMocks private CrewService crewService;
 
     @DisplayName("크루 생성자는 크루장 멤버십으로 함께 저장된다")

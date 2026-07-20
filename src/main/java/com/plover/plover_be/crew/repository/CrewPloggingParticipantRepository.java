@@ -4,6 +4,7 @@ import com.plover.plover_be.crew.domain.CrewPloggingParticipant;
 import com.plover.plover_be.crew.domain.CrewPloggingParticipantStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -29,6 +30,16 @@ public interface CrewPloggingParticipantRepository extends JpaRepository<CrewPlo
     Optional<CrewPloggingParticipant> findByCrewPloggingSessionIdAndUserId(Long sessionId, Long userId);
 
     List<CrewPloggingParticipant> findAllByCrewPloggingSessionIdOrderByJoinedAtAsc(Long sessionId);
+
+    @EntityGraph(attributePaths = "user")
+    @Query("""
+            SELECT p FROM CrewPloggingParticipant p
+            WHERE p.crewPloggingSession.id = :sessionId
+            ORDER BY p.joinedAt ASC
+            """)
+    List<CrewPloggingParticipant> findAllWithUserByCrewPloggingSessionIdOrderByJoinedAtAsc(
+            @Param("sessionId") Long sessionId
+    );
 
     long countByCrewPloggingSessionIdAndStatusNot(Long sessionId, CrewPloggingParticipantStatus status);
 

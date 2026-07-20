@@ -24,9 +24,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.SliceImpl;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,6 +48,7 @@ class CrewPloggingServiceTest {
     @Mock private CrewPloggingSessionRepository sessionRepository;
     @Mock private CrewPloggingParticipantRepository participantRepository;
     @Mock private CrewPloggingResponseMapper responseMapper;
+    @Mock private CrewPloggingPhotoSummaryReader photoSummaryReader;
     @Mock private CrewPloggingFinalizer finalizer;
     @InjectMocks private CrewPloggingService crewPloggingService;
 
@@ -302,6 +307,45 @@ class CrewPloggingServiceTest {
                 org.mockito.ArgumentMatchers.any(java.time.LocalDateTime.class));
     }
 
+    @DisplayName("크루 기록 목록은 세션 순서와 페이지 정보를 유지하며 벌크 사진 요약을 매핑한다")
+    @Test
+    void find_records_uses_bulk_photo_summaries_without_changing_order() {
+        // given
+        Long userId = 1L;
+        Long crewId = 10L;
+        User leader = user("크루장");
+        Crew crew = Crew.create("크루", "A1B2C3D4", leader);
+        CrewMember member = CrewMember.create(crew, leader, CrewRole.LEADER);
+        CrewPloggingSession first = sessionWithStatus(crew, CrewPloggingStatus.COMPLETED);
+        CrewPloggingSession second = sessionWithStatus(crew, CrewPloggingStatus.COMPLETED);
+        ReflectionTestUtils.setField(first, "id", 101L);
+        ReflectionTestUtils.setField(second, "id", 102L);
+        CrewPloggingPhotoSummaryReader.PhotoSummary firstPhotos =
+                new CrewPloggingPhotoSummaryReader.PhotoSummary(2, "https://s3.example.com/latest.jpg");
+        CrewPloggingPhotoSummaryReader.PhotoSummary noPhotos =
+                CrewPloggingPhotoSummaryReader.PhotoSummary.empty();
+        CrewPloggingDto.RecordSummaryResponse firstResponse = recordSummary(101L, 2, "https://s3.example.com/latest.jpg");
+        CrewPloggingDto.RecordSummaryResponse secondResponse = recordSummary(102L, 0, null);
+        PageRequest pageable = PageRequest.of(0, 2);
+        given(crewMemberRepository.findByCrewIdAndUserIdAndStatus(
+                crewId, userId, CrewMemberStatus.ACTIVE)).willReturn(Optional.of(member));
+        given(sessionRepository.findAllByCrewIdAndStatusOrderByEndedAtDesc(
+                crewId, CrewPloggingStatus.COMPLETED, pageable))
+                .willReturn(new SliceImpl<>(List.of(first, second), pageable, true));
+        given(photoSummaryReader.findBySessionIds(List.of(101L, 102L)))
+                .willReturn(Map.of(101L, firstPhotos));
+        given(responseMapper.toRecordSummary(first, firstPhotos)).willReturn(firstResponse);
+        given(responseMapper.toRecordSummary(second, noPhotos)).willReturn(secondResponse);
+
+        // when
+        CrewPloggingDto.RecordListResponse response = crewPloggingService.findRecords(userId, crewId, pageable);
+
+        // then
+        assertThat(response.content()).containsExactly(firstResponse, secondResponse);
+        assertThat(response.hasNext()).isTrue();
+        verify(photoSummaryReader).findBySessionIds(List.of(101L, 102L));
+    }
+
     private CrewPloggingSession sessionWithStatus(Crew crew, CrewPloggingStatus status) {
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         CrewPloggingSession session = CrewPloggingSession.create(crew);
@@ -327,6 +371,16 @@ class CrewPloggingServiceTest {
     private CrewPloggingDto.SessionResponse sessionResponse(CrewPloggingStatus status) {
         return new CrewPloggingDto.SessionResponse(
                 null, status, null, null, null, true, null, false, 1, false
+        );
+    }
+
+    private CrewPloggingDto.RecordSummaryResponse recordSummary(
+            Long sessionId,
+            long photoCount,
+            String representativePhotoUrl
+    ) {
+        return new CrewPloggingDto.RecordSummaryResponse(
+                sessionId, null, "크루장", 1000, 2000, 3600, 2, photoCount, representativePhotoUrl
         );
     }
 }

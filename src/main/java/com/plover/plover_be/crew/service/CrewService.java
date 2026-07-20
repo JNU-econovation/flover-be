@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -44,6 +45,7 @@ public class CrewService {
     private final CrewPloggingSessionRepository crewPloggingSessionRepository;
     private final UserRepository userRepository;
     private final CrewPloggingResponseMapper responseMapper;
+    private final CrewPloggingPhotoSummaryReader photoSummaryReader;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional
@@ -109,10 +111,20 @@ public class CrewService {
                 .findFirstByCrewIdAndStatusInOrderByCreatedAtDesc(crewId, ACTIVE_SESSION_STATUSES)
                 .map(session -> responseMapper.toSessionResponse(session, userId))
                 .orElse(null);
-        List<CrewPloggingDto.RecordSummaryResponse> records = crewPloggingSessionRepository
-                .findAllByCrewIdAndStatusOrderByEndedAtDesc(crewId, CrewPloggingStatus.COMPLETED)
+        List<CrewPloggingSession> completedSessions = crewPloggingSessionRepository
+                .findAllByCrewIdAndStatusOrderByEndedAtDesc(crewId, CrewPloggingStatus.COMPLETED);
+        Map<Long, CrewPloggingPhotoSummaryReader.PhotoSummary> photoSummaries = photoSummaryReader.findBySessionIds(
+                completedSessions.stream().map(CrewPloggingSession::getId).toList()
+        );
+        List<CrewPloggingDto.RecordSummaryResponse> records = completedSessions
                 .stream()
-                .map(responseMapper::toRecordSummary)
+                .map(session -> responseMapper.toRecordSummary(
+                        session,
+                        photoSummaries.getOrDefault(
+                                session.getId(),
+                                CrewPloggingPhotoSummaryReader.PhotoSummary.empty()
+                        )
+                ))
                 .toList();
 
         return new CrewDto.CrewDetailResponse(

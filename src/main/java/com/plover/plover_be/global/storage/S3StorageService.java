@@ -99,6 +99,9 @@ public class S3StorageService {
     }
 
     private String validateAndExtractKey(String objectUrl, String requiredKeyPrefix) {
+        if (objectUrl == null || objectUrl.isBlank()) {
+            throw new BusinessException(CommonErrorCode.INVALID_IMAGE_URL);
+        }
         try {
             URI uri = URI.create(objectUrl);
             String expectedHost = "%s.s3.%s.amazonaws.com".formatted(bucket, region);

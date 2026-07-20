@@ -6,7 +6,6 @@ import com.plover.plover_be.crew.domain.CrewPloggingSession;
 import com.plover.plover_be.crew.domain.CrewPloggingStatus;
 import com.plover.plover_be.crew.dto.CrewPloggingDto;
 import com.plover.plover_be.crew.repository.CrewPloggingParticipantRepository;
-import com.plover.plover_be.plogging.domain.PloggingPhoto;
 import com.plover.plover_be.plogging.repository.PloggingPhotoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -41,13 +40,10 @@ public class CrewPloggingResponseMapper {
         );
     }
 
-    public CrewPloggingDto.RecordSummaryResponse toRecordSummary(CrewPloggingSession session) {
-        long photoCount = photoRepository.countByCrewPloggingSessionId(session.getId());
-        String representativePhotoUrl = photoRepository
-                .findFirstByCrewPloggingSessionIdOrderByCreatedAtDescIdDesc(session.getId())
-                .map(PloggingPhoto::getImageUrl)
-                .orElse(null);
-
+    public CrewPloggingDto.RecordSummaryResponse toRecordSummary(
+            CrewPloggingSession session,
+            CrewPloggingPhotoSummaryReader.PhotoSummary photoSummary
+    ) {
         return new CrewPloggingDto.RecordSummaryResponse(
                 session.getId(),
                 session.getStartedAt(),
@@ -56,14 +52,14 @@ public class CrewPloggingResponseMapper {
                 session.getRepresentativeDistanceMetersSnapshot(),
                 session.getRepresentativePloggingSecondsSnapshot(),
                 session.getParticipantCountSnapshot() == null ? 0 : session.getParticipantCountSnapshot(),
-                photoCount,
-                representativePhotoUrl
+                photoSummary.photoCount(),
+                photoSummary.representativePhotoUrl()
         );
     }
 
     public CrewPloggingDto.RecordDetailResponse toRecordDetail(CrewPloggingSession session) {
         List<CrewPloggingDto.ParticipantResponse> participants = participantRepository
-                .findAllByCrewPloggingSessionIdOrderByJoinedAtAsc(session.getId())
+                .findAllWithUserByCrewPloggingSessionIdOrderByJoinedAtAsc(session.getId())
                 .stream()
                 .filter(participant -> participant.getStatus() != CrewPloggingParticipantStatus.CANCELED)
                 .map(participant -> new CrewPloggingDto.ParticipantResponse(
