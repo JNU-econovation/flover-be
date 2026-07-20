@@ -5,6 +5,7 @@ import com.plover.plover_be.crew.domain.CrewMember;
 import com.plover.plover_be.crew.domain.CrewMemberStatus;
 import com.plover.plover_be.crew.domain.CrewPloggingParticipant;
 import com.plover.plover_be.crew.domain.CrewPloggingSession;
+import com.plover.plover_be.crew.domain.CrewPloggingStatus;
 import com.plover.plover_be.crew.domain.CrewRole;
 import com.plover.plover_be.plogging.domain.PloggingMode;
 import com.plover.plover_be.plogging.domain.PloggingPhoto;
@@ -21,6 +22,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -184,6 +187,29 @@ class CrewReadRepositoryIntegrationTest {
                 assertThat(Hibernate.isInitialized(member.getCrew())).isTrue());
     }
 
+    @DisplayName("완료된 크루 플로깅 기록은 endedAt 내림차순으로 조회한다")
+    @Test
+    void completed_crew_records_are_ordered_by_ended_at_desc() {
+        Crew crew = crewRepository.findById(crewId).orElseThrow();
+        LocalDateTime now = LocalDateTime.now();
+        CrewPloggingSession older = completedSession(crew, now.minusHours(2));
+        CrewPloggingSession newer = completedSession(crew, now.minusHours(1));
+        crewSessionRepository.saveAllAndFlush(List.of(older, newer));
+        Long olderId = older.getId();
+        Long newerId = newer.getId();
+        entityManager.clear();
+
+        Slice<CrewPloggingSession> result = crewSessionRepository
+                .findAllByCrewIdAndStatusOrderByEndedAtDesc(
+                        crewId,
+                        CrewPloggingStatus.COMPLETED,
+                        PageRequest.of(0, 20)
+                );
+
+        assertThat(result.getContent()).extracting(CrewPloggingSession::getId)
+                .containsExactly(newerId, olderId);
+    }
+
     private User user(String prefix) {
         String suffix = UUID.randomUUID().toString();
         return User.create(OAuthProvider.KAKAO, prefix + suffix, prefix + "@test.com", prefix + suffix, null);
@@ -200,5 +226,13 @@ class CrewReadRepositoryIntegrationTest {
                 1000, 2000, 100, 3600, 0, "공원",
                 37.5, 127.0, 37.6, 127.1, null
         );
+    }
+
+    private CrewPloggingSession completedSession(Crew crew, LocalDateTime endedAt) {
+        CrewPloggingSession session = CrewPloggingSession.create(crew);
+        session.start(endedAt.minusHours(1));
+        session.end(endedAt, endedAt.plusHours(24));
+        session.complete(endedAt, 1);
+        return session;
     }
 }

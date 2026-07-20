@@ -6,6 +6,7 @@ import com.plover.plover_be.global.auth.LoginUserId;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
@@ -101,6 +102,7 @@ public class CrewPloggingController {
     public ResponseEntity<CrewPloggingDto.RecordListResponse> getRecords(
             @LoginUserId Long userId,
             @PathVariable Long crewId,
+            @ParameterObject
             @PageableDefault(size = 20) Pageable pageable
     ) {
         return ResponseEntity.ok(crewPloggingService.findRecords(userId, crewId, pageable));

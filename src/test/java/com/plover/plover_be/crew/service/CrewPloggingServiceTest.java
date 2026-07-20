@@ -25,7 +25,9 @@ import org.mockito.Mock;
 import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.SliceImpl;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Collection;
@@ -344,6 +346,41 @@ class CrewPloggingServiceTest {
         assertThat(response.content()).containsExactly(firstResponse, secondResponse);
         assertThat(response.hasNext()).isTrue();
         verify(photoSummaryReader).findBySessionIds(List.of(101L, 102L));
+    }
+
+    @DisplayName("크루 기록 목록은 외부 정렬을 제거하고 페이지 번호와 크기만 저장소에 전달한다")
+    @Test
+    void find_records_ignores_external_sort() {
+        // given
+        Long userId = 1L;
+        Long crewId = 10L;
+        User leader = user("leader");
+        Crew crew = Crew.create("crew", "123456", leader);
+        CrewMember member = CrewMember.create(crew, leader, CrewRole.LEADER);
+        Pageable requested = PageRequest.of(1, 20, Sort.by("string"));
+        Pageable pageOnly = PageRequest.of(1, 20);
+        given(crewMemberRepository.findByCrewIdAndUserIdAndStatus(
+                crewId, userId, CrewMemberStatus.ACTIVE)).willReturn(Optional.of(member));
+        given(sessionRepository.findAllByCrewIdAndStatusOrderByEndedAtDesc(
+                crewId, CrewPloggingStatus.COMPLETED, pageOnly))
+                .willReturn(new SliceImpl<>(List.of(), pageOnly, false));
+        given(photoSummaryReader.findBySessionIds(List.of())).willReturn(Map.of());
+
+        // when
+        CrewPloggingDto.RecordListResponse response = crewPloggingService.findRecords(
+                userId, crewId, requested);
+
+        // then
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(sessionRepository).findAllByCrewIdAndStatusOrderByEndedAtDesc(
+                org.mockito.ArgumentMatchers.eq(crewId),
+                org.mockito.ArgumentMatchers.eq(CrewPloggingStatus.COMPLETED),
+                pageableCaptor.capture());
+        assertThat(pageableCaptor.getValue().getPageNumber()).isEqualTo(1);
+        assertThat(pageableCaptor.getValue().getPageSize()).isEqualTo(20);
+        assertThat(pageableCaptor.getValue().getSort().isUnsorted()).isTrue();
+        assertThat(response.content()).isEmpty();
+        assertThat(response.hasNext()).isFalse();
     }
 
     private CrewPloggingSession sessionWithStatus(Crew crew, CrewPloggingStatus status) {

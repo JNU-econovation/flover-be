@@ -18,6 +18,7 @@ import com.plover.plover_be.crew.repository.CrewRepository;
 import com.plover.plover_be.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
@@ -180,8 +181,9 @@ public class CrewPloggingService {
             Pageable pageable
     ) {
         getActiveMemberOrThrow(crewId, userId);
+        Pageable pageOnly = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
         Slice<CrewPloggingSession> sessions = sessionRepository
-                .findAllByCrewIdAndStatusOrderByEndedAtDesc(crewId, CrewPloggingStatus.COMPLETED, pageable);
+                .findAllByCrewIdAndStatusOrderByEndedAtDesc(crewId, CrewPloggingStatus.COMPLETED, pageOnly);
         Map<Long, CrewPloggingPhotoSummaryReader.PhotoSummary> photoSummaries = photoSummaryReader.findBySessionIds(
                 sessions.getContent().stream().map(CrewPloggingSession::getId).toList()
         );

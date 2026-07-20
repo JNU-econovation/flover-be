@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -39,6 +40,7 @@ public class PloggingController {
     @GetMapping
     public ResponseEntity<PloggingDto.SessionListResponse> getSessions(
             @LoginUserId Long userId,
+            @ParameterObject
             @PageableDefault(size = 20) Pageable pageable
     ) {
         return ResponseEntity.ok(ploggingService.findSessions(userId, pageable));
