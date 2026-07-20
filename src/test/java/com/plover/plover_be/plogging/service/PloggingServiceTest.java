@@ -17,10 +17,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.SliceImpl;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -44,7 +44,24 @@ class PloggingServiceTest {
     @Mock private PloggingSessionRepository ploggingSessionRepository;
     @Mock private PloggingRoutePointRepository ploggingRoutePointRepository;
     @Mock private PloggingPhotoRepository ploggingPhotoRepository;
-    @InjectMocks private PloggingService ploggingService;
+    @Mock private PloggingStorageService ploggingStorageService;
+    private PloggingService ploggingService;
+
+    @BeforeEach
+    void setUp() {
+        PloggingRecordWriter ploggingRecordWriter = new PloggingRecordWriter(
+                ploggingSessionRepository,
+                ploggingRoutePointRepository,
+                ploggingPhotoRepository
+        );
+        ploggingService = new PloggingService(
+                userRepository,
+                ploggingSessionRepository,
+                ploggingPhotoRepository,
+                ploggingStorageService,
+                ploggingRecordWriter
+        );
+    }
 
     @DisplayName("플로깅 완료 기록을 정상적으로 저장한다")
     @Test
@@ -585,7 +602,8 @@ class PloggingServiceTest {
                 37.51, 127.01,
                 routePoints,
                 "https://s3.example.com/map.jpg",
-                photoUrls
+                photoUrls,
+                null
         );
     }
 }

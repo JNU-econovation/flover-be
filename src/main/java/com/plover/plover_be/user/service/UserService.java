@@ -1,5 +1,6 @@
 package com.plover.plover_be.user.service;
 
+import com.plover.plover_be.crew.service.CrewDeletionService;
 import com.plover.plover_be.global.storage.StorageDto;
 import com.plover.plover_be.plogging.repository.PloggingPhotoRepository;
 import com.plover.plover_be.plogging.repository.PloggingRoutePointRepository;
@@ -27,6 +28,7 @@ public class UserService {
     private final PloggingSessionRepository ploggingSessionRepository;
     private final PloggingPhotoRepository ploggingPhotoRepository;
     private final PloggingRoutePointRepository ploggingRoutePointRepository;
+    private final CrewDeletionService crewDeletionService;
 
     @Transactional(readOnly = true)
     public UserDto.UserInfoResponse findUserInfo(Long userId) {
@@ -92,6 +94,7 @@ public class UserService {
         User user = getUserOrThrow(userId);
         String profileImageUrl = user.getProfileImageUrl();
 
+        crewDeletionService.deleteOwnedCrewsAndUserReferences(userId);
         ploggingPhotoRepository.deleteByPloggingSessionUserId(userId);
         ploggingRoutePointRepository.deleteByPloggingSessionUserId(userId);
         ploggingSessionRepository.deleteByUserId(userId);
