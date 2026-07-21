@@ -1,5 +1,6 @@
 package com.plover.plover_be.user.service;
 
+import com.plover.plover_be.crew.service.CrewDeletionService;
 import com.plover.plover_be.global.storage.StorageDto;
 import com.plover.plover_be.user.domain.OAuthProvider;
 import com.plover.plover_be.user.domain.User;
@@ -39,6 +40,7 @@ class UserServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private ProfileImageStorageService profileImageStorageService;
     @Mock private UserPloggingPort userPloggingPort;
+    @Mock private CrewDeletionService crewDeletionService;
     @InjectMocks private UserService userService;
 
     private static User kakaoUser(String nickname, String imageUrl) {
@@ -359,8 +361,9 @@ class UserServiceTest {
             // when
             userService.deleteUser(userId);
 
-            // then - 플로깅 데이터 정리 후 사용자를 삭제하는지 확인
-            InOrder inOrder = inOrder(userPloggingPort, userRepository);
+            // then - 크루 및 플로깅 데이터 정리 후 사용자를 삭제하는지 확인
+            InOrder inOrder = inOrder(crewDeletionService, userPloggingPort, userRepository);
+            inOrder.verify(crewDeletionService).deleteOwnedCrewsAndUserReferences(userId);
             inOrder.verify(userPloggingPort).deleteByUserId(userId);
             inOrder.verify(userRepository).delete(user);
 
@@ -387,6 +390,7 @@ class UserServiceTest {
 
         // then
         verify(profileImageStorageService, never()).deleteIfOwnedByBucket(any());
+        verify(crewDeletionService).deleteOwnedCrewsAndUserReferences(userId);
         verify(userPloggingPort).deleteByUserId(userId);
         verify(userRepository).delete(user);
     }
@@ -402,5 +406,19 @@ class UserServiceTest {
                 .isInstanceOf(UserException.class)
                 .hasFieldOrPropertyWithValue("errorCode", UserErrorCode.USER_NOT_FOUND);
         verify(userRepository, never()).delete(any(User.class));
+    }
+    @DisplayName("크루장도 소유 크루 정리 후 계정을 삭제할 수 있다")
+    @Test
+    void delete_user_allows_crew_leader_after_crew_cleanup() {
+        // given
+        Long userId = 1L;
+        User user = kakaoUser("크루장", null);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        // when
+        userService.deleteUser(userId);
+
+        // then
+        verify(crewDeletionService).deleteOwnedCrewsAndUserReferences(userId);
+        verify(userRepository).delete(user);
     }
 }

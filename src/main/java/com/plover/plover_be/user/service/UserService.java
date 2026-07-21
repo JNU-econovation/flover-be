@@ -1,5 +1,6 @@
 package com.plover.plover_be.user.service;
 
+import com.plover.plover_be.crew.service.CrewDeletionService;
 import com.plover.plover_be.global.storage.StorageDto;
 import com.plover.plover_be.user.domain.OAuthProvider;
 import com.plover.plover_be.user.domain.User;
@@ -22,6 +23,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final ProfileImageStorageService profileImageStorageService;
     private final UserPloggingPort userPloggingPort;
+    private final CrewDeletionService crewDeletionService;
 
     @Transactional(readOnly = true)
     public UserDto.UserInfoResponse findUserInfo(Long userId) {
@@ -87,6 +89,7 @@ public class UserService {
         User user = getUserOrThrow(userId);
         String profileImageUrl = user.getProfileImageUrl();
 
+        crewDeletionService.deleteOwnedCrewsAndUserReferences(userId);
         userPloggingPort.deleteByUserId(userId);
         userRepository.delete(user);
 
