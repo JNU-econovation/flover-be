@@ -1,10 +1,6 @@
 package com.plover.plover_be.user.service;
 
 import com.plover.plover_be.global.storage.StorageDto;
-import com.plover.plover_be.plogging.repository.PloggingPhotoRepository;
-import com.plover.plover_be.plogging.repository.PloggingRoutePointRepository;
-import com.plover.plover_be.plogging.repository.PloggingSessionRepository;
-import com.plover.plover_be.plogging.repository.PloggingSessionRepository.PloggingStatsView;
 import com.plover.plover_be.user.domain.OAuthProvider;
 import com.plover.plover_be.user.domain.User;
 import com.plover.plover_be.user.dto.UserDto;
@@ -42,9 +38,7 @@ class UserServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private ProfileImageStorageService profileImageStorageService;
-    @Mock private PloggingSessionRepository ploggingSessionRepository;
-    @Mock private PloggingPhotoRepository ploggingPhotoRepository;
-    @Mock private PloggingRoutePointRepository ploggingRoutePointRepository;
+    @Mock private UserPloggingPort userPloggingPort;
     @InjectMocks private UserService userService;
 
     private static User kakaoUser(String nickname, String imageUrl) {
@@ -303,10 +297,10 @@ class UserServiceTest {
         // given
         Long userId = 1L;
         User user = kakaoUser("닉네임", null);
-        PloggingStatsView stats = mockStats(3L, 12000L, 8500L);
+        UserPloggingPort.PloggingStats stats = new UserPloggingPort.PloggingStats(3L, 12000L, 8500L);
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(ploggingSessionRepository.findStatsByUserId(userId)).willReturn(stats);
+        given(userPloggingPort.findStats(userId)).willReturn(stats);
 
         // when
         UserDto.PloggingStatsResponse result = userService.findPloggingStats(userId);
@@ -323,10 +317,10 @@ class UserServiceTest {
         // given
         Long userId = 1L;
         User user = kakaoUser("닉네임", null);
-        PloggingStatsView stats = mockStats(0L, 0L, 0L);
+        UserPloggingPort.PloggingStats stats = new UserPloggingPort.PloggingStats(0L, 0L, 0L);
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(ploggingSessionRepository.findStatsByUserId(userId)).willReturn(stats);
+        given(userPloggingPort.findStats(userId)).willReturn(stats);
 
         // when
         UserDto.PloggingStatsResponse result = userService.findPloggingStats(userId);
@@ -348,14 +342,6 @@ class UserServiceTest {
                 .isInstanceOf(UserException.class);
     }
 
-    private PloggingStatsView mockStats(long count, long totalStepCount, long totalDistanceMeters) {
-        return new PloggingStatsView() {
-            public long getCount() { return count; }
-            public long getTotalStepCount() { return totalStepCount; }
-            public long getTotalDistanceMeters() { return totalDistanceMeters; }
-        };
-    }
-
     // ──────────────── deleteUser ────────────────
 
     @DisplayName("프로필 이미지가 있는 유저 탈퇴 시 DB 삭제 완료 후 트랜잭션 커밋 시점에 S3 이미지를 삭제한다")
@@ -373,11 +359,9 @@ class UserServiceTest {
             // when
             userService.deleteUser(userId);
 
-            // then - DB 삭제가 FK 순서대로 실행됐는지 확인
-            InOrder inOrder = inOrder(ploggingPhotoRepository, ploggingRoutePointRepository, ploggingSessionRepository, userRepository);
-            inOrder.verify(ploggingPhotoRepository).deleteByPloggingSessionUserId(userId);
-            inOrder.verify(ploggingRoutePointRepository).deleteByPloggingSessionUserId(userId);
-            inOrder.verify(ploggingSessionRepository).deleteByUserId(userId);
+            // then - 플로깅 데이터 정리 후 사용자를 삭제하는지 확인
+            InOrder inOrder = inOrder(userPloggingPort, userRepository);
+            inOrder.verify(userPloggingPort).deleteByUserId(userId);
             inOrder.verify(userRepository).delete(user);
 
             // S3 삭제는 커밋 이후에 실행되도록 등록됐는지 확인
@@ -403,9 +387,7 @@ class UserServiceTest {
 
         // then
         verify(profileImageStorageService, never()).deleteIfOwnedByBucket(any());
-        verify(ploggingPhotoRepository).deleteByPloggingSessionUserId(userId);
-        verify(ploggingRoutePointRepository).deleteByPloggingSessionUserId(userId);
-        verify(ploggingSessionRepository).deleteByUserId(userId);
+        verify(userPloggingPort).deleteByUserId(userId);
         verify(userRepository).delete(user);
     }
 

@@ -1,9 +1,6 @@
 package com.plover.plover_be.user.service;
 
 import com.plover.plover_be.global.storage.StorageDto;
-import com.plover.plover_be.plogging.repository.PloggingPhotoRepository;
-import com.plover.plover_be.plogging.repository.PloggingRoutePointRepository;
-import com.plover.plover_be.plogging.repository.PloggingSessionRepository;
 import com.plover.plover_be.user.domain.OAuthProvider;
 import com.plover.plover_be.user.domain.User;
 import com.plover.plover_be.user.dto.UserDto;
@@ -24,9 +21,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final ProfileImageStorageService profileImageStorageService;
-    private final PloggingSessionRepository ploggingSessionRepository;
-    private final PloggingPhotoRepository ploggingPhotoRepository;
-    private final PloggingRoutePointRepository ploggingRoutePointRepository;
+    private final UserPloggingPort userPloggingPort;
 
     @Transactional(readOnly = true)
     public UserDto.UserInfoResponse findUserInfo(Long userId) {
@@ -55,8 +50,8 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserDto.PloggingStatsResponse findPloggingStats(Long userId) {
         getUserOrThrow(userId);
-        PloggingSessionRepository.PloggingStatsView stats = ploggingSessionRepository.findStatsByUserId(userId);
-        return new UserDto.PloggingStatsResponse(stats.getCount(), stats.getTotalStepCount(), stats.getTotalDistanceMeters());
+        UserPloggingPort.PloggingStats stats = userPloggingPort.findStats(userId);
+        return new UserDto.PloggingStatsResponse(stats.count(), stats.totalStepCount(), stats.totalDistanceMeters());
     }
 
     @Transactional
@@ -92,9 +87,7 @@ public class UserService {
         User user = getUserOrThrow(userId);
         String profileImageUrl = user.getProfileImageUrl();
 
-        ploggingPhotoRepository.deleteByPloggingSessionUserId(userId);
-        ploggingRoutePointRepository.deleteByPloggingSessionUserId(userId);
-        ploggingSessionRepository.deleteByUserId(userId);
+        userPloggingPort.deleteByUserId(userId);
         userRepository.delete(user);
 
         if (profileImageUrl != null) {
