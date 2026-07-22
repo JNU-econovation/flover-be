@@ -92,6 +92,9 @@ class CrewPloggingResponseMapperTest {
         User user = user("참가자", 1L);
         Crew crew = Crew.create("크루", "A1B2C3D4", user);
         CrewPloggingSession crewSession = completedSession(crew, user, 10L);
+        ReflectionTestUtils.setField(crewSession, "representativePlaceNameSnapshot", null);
+        ReflectionTestUtils.setField(crewSession, "representativeCaloriesBurnedSnapshot", null);
+        ReflectionTestUtils.setField(crewSession, "representativeMapImageUrlSnapshot", null);
         CrewPloggingParticipant participant = CrewPloggingParticipant.create(crewSession, user, true);
         PloggingSession personalRecord = personalRecord(user);
         PloggingPhoto photo = PloggingPhoto.create(
@@ -109,7 +112,11 @@ class CrewPloggingResponseMapperTest {
 
         // then
         assertThat(response.crewPloggingSessionId()).isEqualTo(10L);
+        assertThat(response.mode()).isEqualTo(PloggingMode.FREE);
+        assertThat(response.placeName()).isEqualTo("공원");
         assertThat(response.representativeNickname()).isEqualTo("참가자");
+        assertThat(response.caloriesBurned()).isEqualTo(100);
+        assertThat(response.mapImageUrl()).isEqualTo("https://s3.example.com/map.jpg");
         assertThat(response.participants()).singleElement().satisfies(result -> {
             assertThat(result.userId()).isEqualTo(1L);
             assertThat(result.nickname()).isEqualTo("참가자");
@@ -145,7 +152,7 @@ class CrewPloggingResponseMapperTest {
         return PloggingSession.create(
                 user, PloggingMode.FREE, now.minusHours(1), now,
                 1000, 2000, 100, 3600, 0, "공원",
-                37.5, 127.0, 37.6, 127.1, null
+                37.5, 127.0, 37.6, 127.1, "https://s3.example.com/map.jpg"
         );
     }
 }

@@ -67,8 +67,17 @@ public class CrewPloggingSession {
     @Column(name = "representative_distance_meters_snapshot")
     private Integer representativeDistanceMetersSnapshot;
 
+    @Column(name = "representative_calories_burned_snapshot")
+    private Integer representativeCaloriesBurnedSnapshot;
+
     @Column(name = "representative_plogging_seconds_snapshot")
     private Integer representativePloggingSecondsSnapshot;
+
+    @Column(name = "representative_place_name_snapshot")
+    private String representativePlaceNameSnapshot;
+
+    @Column(name = "representative_map_image_url_snapshot")
+    private String representativeMapImageUrlSnapshot;
 
     @Column(name = "participant_count_snapshot")
     private Integer participantCountSnapshot;
@@ -118,7 +127,10 @@ public class CrewPloggingSession {
         this.representativeNicknameSnapshot = nickname;
         this.representativeStepCountSnapshot = record.getStepCount();
         this.representativeDistanceMetersSnapshot = record.getDistanceMeters();
+        this.representativeCaloriesBurnedSnapshot = record.getCaloriesBurned();
         this.representativePloggingSecondsSnapshot = record.getPloggingSeconds();
+        this.representativePlaceNameSnapshot = record.getPlaceName();
+        this.representativeMapImageUrlSnapshot = record.getMapImageUrl();
     }
 
     public void complete(LocalDateTime completedAt, int participantCount) {

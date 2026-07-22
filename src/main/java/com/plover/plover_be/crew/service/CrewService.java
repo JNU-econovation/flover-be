@@ -27,6 +27,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -92,10 +94,32 @@ public class CrewService {
     @Transactional(readOnly = true)
     public CrewDto.CrewListResponse findMyCrews(Long userId) {
         getUserOrThrow(userId);
-        List<CrewDto.CrewListItemResponse> crews = crewMemberRepository
-                .findAllByUserIdAndStatusOrderByJoinedAtDesc(userId, CrewMemberStatus.ACTIVE)
-                .stream()
-                .map(member -> toListItem(member, userId))
+        List<CrewMember> memberships = crewMemberRepository
+                .findAllByUserIdAndStatusOrderByJoinedAtDesc(userId, CrewMemberStatus.ACTIVE);
+        if (memberships.isEmpty()) {
+            return new CrewDto.CrewListResponse(List.of());
+        }
+
+        List<Long> crewIds = memberships.stream()
+                .map(member -> member.getCrew().getId())
+                .toList();
+        Map<Long, List<String>> profileImageUrlsByCrewId = new HashMap<>();
+        for (CrewMemberRepository.CrewProfileImageView profileImage :
+                crewMemberRepository.findProfileImagesByCrewIdInAndStatus(
+                        crewIds, CrewMemberStatus.ACTIVE)) {
+            if (profileImage.getProfileImageUrl() == null || profileImage.getProfileImageUrl().isBlank()) {
+                continue;
+            }
+            profileImageUrlsByCrewId
+                    .computeIfAbsent(profileImage.getCrewId(), key -> new ArrayList<>())
+                    .add(profileImage.getProfileImageUrl());
+        }
+
+        List<CrewDto.CrewListItemResponse> crews = memberships.stream()
+                .map(member -> toListItem(
+                        member,
+                        List.copyOf(profileImageUrlsByCrewId.getOrDefault(member.getCrew().getId(), List.of()))
+                ))
                 .toList();
         return new CrewDto.CrewListResponse(crews);
     }
@@ -215,7 +239,7 @@ public class CrewService {
                 .orElseThrow(() -> new CrewException(CrewErrorCode.CREW_MEMBER_ONLY));
     }
 
-    private CrewDto.CrewListItemResponse toListItem(CrewMember member, Long userId) {
+    private CrewDto.CrewListItemResponse toListItem(CrewMember member, List<String> memberProfileImageUrls) {
         Long crewId = member.getCrew().getId();
         CrewPloggingSessionRepository.CrewStatsView stats = crewPloggingSessionRepository.findStatsByCrewId(crewId);
         Optional<CrewPloggingSession> activeSession = crewPloggingSessionRepository
@@ -223,7 +247,9 @@ public class CrewService {
         return new CrewDto.CrewListItemResponse(
                 crewId,
                 member.getCrew().getName(),
+                member.getCrew().getLeader().getNickname(),
                 crewMemberRepository.countByCrewIdAndStatus(crewId, CrewMemberStatus.ACTIVE),
+                memberProfileImageUrls,
                 member.getRole(),
                 stats.getCount(),
                 stats.getTotalStepCount(),

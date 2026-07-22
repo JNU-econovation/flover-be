@@ -2,6 +2,7 @@ package com.plover.plover_be.crew.dto;
 
 import com.plover.plover_be.crew.domain.CrewPloggingParticipantStatus;
 import com.plover.plover_be.crew.domain.CrewPloggingStatus;
+import com.plover.plover_be.plogging.domain.PloggingMode;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
@@ -56,13 +57,17 @@ public class CrewPloggingDto {
 
     public record RecordDetailResponse(
             Long crewPloggingSessionId,
+            PloggingMode mode,
             LocalDateTime startedAt,
             LocalDateTime endedAt,
+            String placeName,
             Long representativeUserId,
             String representativeNickname,
             Integer stepCount,
             Integer distanceMeters,
+            Integer caloriesBurned,
             Integer ploggingSeconds,
+            String mapImageUrl,
             int participantCount,
             List<ParticipantResponse> participants,
             List<PhotoResponse> photos

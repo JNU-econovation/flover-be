@@ -60,7 +60,9 @@ public class CrewDto {
     public record CrewListItemResponse(
             @Schema(description = "크루 ID", example = "10") Long crewId,
             @Schema(description = "크루 이름", example = "한강 지킴이") String name,
+            @Schema(description = "크루장 공개 닉네임", example = "플로버") String leaderNickname,
             @Schema(description = "ACTIVE 크루원 수", example = "5") long memberCount,
+            @Schema(description = "ACTIVE 크루원의 프로필 이미지 URL 목록") List<String> memberProfileImageUrls,
             @Schema(description = "로그인 사용자의 역할", example = "MEMBER") CrewRole myRole,
             @Schema(description = "대표 기록이 존재하는 완료 세션 수", example = "8") long completedPloggingCount,
             @Schema(description = "대표 기록 누적 걸음 수", example = "32000") long totalStepCount,

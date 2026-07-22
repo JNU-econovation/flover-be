@@ -136,6 +136,9 @@ class CrewDeletionServiceIntegrationTest {
         assertThat(preserved.getRepresentativePloggingSession()).isNull();
         assertThat(preserved.getRepresentativeNicknameSnapshot()).isEqualTo(member.getNickname());
         assertThat(preserved.getRepresentativeStepCountSnapshot()).isEqualTo(personal.getStepCount());
+        assertThat(preserved.getRepresentativePlaceNameSnapshot()).isEqualTo(personal.getPlaceName());
+        assertThat(preserved.getRepresentativeCaloriesBurnedSnapshot()).isEqualTo(personal.getCaloriesBurned());
+        assertThat(preserved.getRepresentativeMapImageUrlSnapshot()).isEqualTo(personal.getMapImageUrl());
         assertThat(preserved.getParticipantCountSnapshot()).isEqualTo(2);
         assertThat(crewSessionRepository.findStatsByCrewId(crewId).getCount()).isEqualTo(1L);
         assertThat(crewMemberRepository.findByCrewIdAndUserIdAndStatus(
@@ -164,7 +167,7 @@ class CrewDeletionServiceIntegrationTest {
         return PloggingSession.create(
                 user, PloggingMode.FREE, now.minusHours(1), now,
                 1000, 2000, 100, 3600, 0, "공원",
-                37.5, 127.0, 37.6, 127.1, null
+                37.5, 127.0, 37.6, 127.1, "https://s3.example.com/map.jpg"
         );
     }
 }
