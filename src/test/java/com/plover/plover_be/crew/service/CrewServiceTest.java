@@ -20,14 +20,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -147,6 +150,53 @@ class CrewServiceTest {
                 .isInstanceOf(CrewException.class);
         assertThatThrownBy(() -> crewService.joinCrew(1L, "1234567"))
                 .isInstanceOf(CrewException.class);
+    }
+
+    @DisplayName("크루 목록은 크루장 닉네임과 활성 크루원의 프로필 이미지 URL을 반환한다")
+    @Test
+    void find_my_crews_returns_leader_nickname_and_member_profile_images() {
+        // given
+        Long userId = 1L;
+        Long crewId = 10L;
+        User leader = user();
+        Crew crew = Crew.create("우리 크루", "123456", leader);
+        ReflectionTestUtils.setField(crew, "id", crewId);
+        CrewMember membership = CrewMember.create(crew, leader, CrewRole.LEADER);
+        CrewMemberRepository.CrewProfileImageView profileImage = mock(
+                CrewMemberRepository.CrewProfileImageView.class);
+        CrewMemberRepository.CrewProfileImageView emptyProfileImage = mock(
+                CrewMemberRepository.CrewProfileImageView.class);
+        CrewPloggingSessionRepository.CrewStatsView stats = mock(
+                CrewPloggingSessionRepository.CrewStatsView.class);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(leader));
+        given(crewMemberRepository.findAllByUserIdAndStatusOrderByJoinedAtDesc(
+                userId, CrewMemberStatus.ACTIVE)).willReturn(List.of(membership));
+        given(crewMemberRepository.findProfileImagesByCrewIdInAndStatus(
+                List.of(crewId), CrewMemberStatus.ACTIVE))
+                .willReturn(List.of(profileImage, emptyProfileImage));
+        given(profileImage.getCrewId()).willReturn(crewId);
+        given(profileImage.getProfileImageUrl()).willReturn("https://example.com/member.jpg");
+        given(emptyProfileImage.getProfileImageUrl()).willReturn(null);
+        given(crewPloggingSessionRepository.findStatsByCrewId(crewId)).willReturn(stats);
+        given(crewPloggingSessionRepository.findFirstByCrewIdAndStatusInOrderByCreatedAtDesc(
+                crewId, List.of(
+                        com.plover.plover_be.crew.domain.CrewPloggingStatus.RECRUITING,
+                        com.plover.plover_be.crew.domain.CrewPloggingStatus.IN_PROGRESS,
+                        com.plover.plover_be.crew.domain.CrewPloggingStatus.COMPLETING
+                ))).willReturn(Optional.empty());
+        given(crewMemberRepository.countByCrewIdAndStatus(crewId, CrewMemberStatus.ACTIVE))
+                .willReturn(2L);
+
+        // when
+        CrewDto.CrewListResponse response = crewService.findMyCrews(userId);
+
+        // then
+        assertThat(response.crews()).singleElement().satisfies(result -> {
+            assertThat(result.leaderNickname()).isEqualTo(leader.getNickname());
+            assertThat(result.memberProfileImageUrls())
+                    .containsExactly("https://example.com/member.jpg");
+        });
     }
 
     private User user() {

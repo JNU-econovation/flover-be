@@ -6,6 +6,8 @@ import com.plover.plover_be.crew.domain.CrewPloggingSession;
 import com.plover.plover_be.crew.domain.CrewPloggingStatus;
 import com.plover.plover_be.crew.dto.CrewPloggingDto;
 import com.plover.plover_be.crew.repository.CrewPloggingParticipantRepository;
+import com.plover.plover_be.plogging.domain.PloggingMode;
+import com.plover.plover_be.plogging.domain.PloggingSession;
 import com.plover.plover_be.plogging.repository.PloggingPhotoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -58,6 +60,22 @@ public class CrewPloggingResponseMapper {
     }
 
     public CrewPloggingDto.RecordDetailResponse toRecordDetail(CrewPloggingSession session) {
+        PloggingSession representativeRecord = session.getRepresentativePloggingSession();
+        String placeName = session.getRepresentativePlaceNameSnapshot();
+        Integer caloriesBurned = session.getRepresentativeCaloriesBurnedSnapshot();
+        String mapImageUrl = session.getRepresentativeMapImageUrlSnapshot();
+        if (representativeRecord != null) {
+            if (placeName == null) {
+                placeName = representativeRecord.getPlaceName();
+            }
+            if (caloriesBurned == null) {
+                caloriesBurned = representativeRecord.getCaloriesBurned();
+            }
+            if (mapImageUrl == null) {
+                mapImageUrl = representativeRecord.getMapImageUrl();
+            }
+        }
+
         List<CrewPloggingDto.ParticipantResponse> participants = participantRepository
                 .findAllWithUserByCrewPloggingSessionIdOrderByJoinedAtAsc(session.getId())
                 .stream()
@@ -84,13 +102,17 @@ public class CrewPloggingResponseMapper {
 
         return new CrewPloggingDto.RecordDetailResponse(
                 session.getId(),
+                PloggingMode.FREE,
                 session.getStartedAt(),
                 session.getEndedAt(),
+                placeName,
                 session.getRepresentativeUserIdSnapshot(),
                 session.getRepresentativeNicknameSnapshot(),
                 session.getRepresentativeStepCountSnapshot(),
                 session.getRepresentativeDistanceMetersSnapshot(),
+                caloriesBurned,
                 session.getRepresentativePloggingSecondsSnapshot(),
+                mapImageUrl,
                 session.getParticipantCountSnapshot() == null ? 0 : session.getParticipantCountSnapshot(),
                 participants,
                 photos

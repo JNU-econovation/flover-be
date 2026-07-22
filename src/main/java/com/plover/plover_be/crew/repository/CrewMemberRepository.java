@@ -24,13 +24,25 @@ public interface CrewMemberRepository extends JpaRepository<CrewMember, Long> {
 
     Optional<CrewMember> findByCrewIdAndUserIdAndStatus(Long crewId, Long userId, CrewMemberStatus status);
 
-    @EntityGraph(attributePaths = "crew")
+    @EntityGraph(attributePaths = {"crew", "crew.leader"})
     List<CrewMember> findAllByUserIdAndStatusOrderByJoinedAtDesc(Long userId, CrewMemberStatus status);
 
     @EntityGraph(attributePaths = "user")
     List<CrewMember> findAllByCrewIdAndStatusOrderByJoinedAtAsc(Long crewId, CrewMemberStatus status);
 
     long countByCrewIdAndStatus(Long crewId, CrewMemberStatus status);
+
+    @Query("""
+            SELECT m.crew.id AS crewId, m.user.profileImageUrl AS profileImageUrl
+            FROM CrewMember m
+            WHERE m.crew.id IN :crewIds
+              AND m.status = :status
+            ORDER BY m.crew.id, m.joinedAt
+            """)
+    List<CrewProfileImageView> findProfileImagesByCrewIdInAndStatus(
+            @Param("crewIds") List<Long> crewIds,
+            @Param("status") CrewMemberStatus status
+    );
 
     @Modifying(clearAutomatically = true)
     @Query("DELETE FROM CrewMember m WHERE m.user.id = :userId")
@@ -39,4 +51,9 @@ public interface CrewMemberRepository extends JpaRepository<CrewMember, Long> {
     @Modifying(clearAutomatically = true)
     @Query("DELETE FROM CrewMember m WHERE m.crew.id = :crewId")
     void deleteByCrewId(@Param("crewId") Long crewId);
+
+    interface CrewProfileImageView {
+        Long getCrewId();
+        String getProfileImageUrl();
+    }
 }
