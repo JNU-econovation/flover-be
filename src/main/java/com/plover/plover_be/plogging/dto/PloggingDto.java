@@ -11,6 +11,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
 import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -59,8 +60,8 @@ public class PloggingDto {
             Long ploggingSessionId,
             PloggingMode mode,
             String placeName,
-            LocalDateTime startedAt,
-            LocalDateTime finishedAt,
+            Instant startedAt,
+            Instant finishedAt,
             int distanceMeters
     ) {}
 
@@ -72,8 +73,8 @@ public class PloggingDto {
     public record SessionDetailResponse(
             Long ploggingSessionId,
             PloggingMode mode,
-            LocalDateTime startedAt,
-            LocalDateTime finishedAt,
+            Instant startedAt,
+            Instant finishedAt,
             String placeName,
             int distanceMeters,
             int stepCount,
