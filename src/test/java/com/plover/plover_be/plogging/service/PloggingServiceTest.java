@@ -25,8 +25,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -291,6 +293,8 @@ class PloggingServiceTest {
         assertThat(result.content().get(0).placeName()).isEqualTo("장소B");
         assertThat(result.content().get(1).placeName()).isEqualTo("장소A");
         assertThat(result.content().get(0).mode()).isEqualTo(PloggingMode.RECOMMENDED);
+        assertThat(result.content().get(0).startedAt()).isEqualTo(now.toInstant(ZoneOffset.UTC));
+        assertThat(result.content().get(0).finishedAt()).isEqualTo(now.plusHours(1).toInstant(ZoneOffset.UTC));
         assertThat(result.hasNext()).isFalse();
     }
 
@@ -380,8 +384,8 @@ class PloggingServiceTest {
 
         // then
         assertThat(result.mode()).isEqualTo(PloggingMode.FREE);
-        assertThat(result.startedAt()).isEqualTo(startedAt);
-        assertThat(result.finishedAt()).isEqualTo(finishedAt);
+        assertThat(result.startedAt()).isEqualTo(Instant.parse("2026-05-04T10:00:00Z"));
+        assertThat(result.finishedAt()).isEqualTo(finishedAt.toInstant(ZoneOffset.UTC));
         assertThat(result.placeName()).isEqualTo("한강공원");
         assertThat(result.distanceMeters()).isEqualTo(3000);
         assertThat(result.stepCount()).isEqualTo(4000);

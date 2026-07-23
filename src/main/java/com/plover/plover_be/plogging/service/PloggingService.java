@@ -18,8 +18,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -52,8 +54,8 @@ public class PloggingService {
                         session.getId(),
                         session.getMode(),
                         session.getPlaceName(),
-                        session.getStartedAt(),
-                        session.getFinishedAt(),
+                        toUtcInstant(session.getStartedAt()),
+                        toUtcInstant(session.getFinishedAt()),
                         session.getDistanceMeters()
                 ))
                 .toList();
@@ -73,8 +75,8 @@ public class PloggingService {
         return new PloggingDto.SessionDetailResponse(
                 session.getId(),
                 session.getMode(),
-                session.getStartedAt(),
-                session.getFinishedAt(),
+                toUtcInstant(session.getStartedAt()),
+                toUtcInstant(session.getFinishedAt()),
                 session.getPlaceName(),
                 session.getDistanceMeters(),
                 session.getStepCount(),
@@ -129,6 +131,10 @@ public class PloggingService {
 
     private List<PloggingSessionRepository.SessionStatsView> fetchPeriodStats(Long userId, LocalDateTime start, LocalDateTime end) {
         return ploggingSessionRepository.findSessionStatsInPeriod(userId, start, end);
+    }
+
+    private Instant toUtcInstant(LocalDateTime value) {
+        return value == null ? null : value.toInstant(ZoneOffset.UTC);
     }
 
     private record SessionAggregate(long stepCount, long distanceMeters, long caloriesBurned, long ploggingSeconds) {

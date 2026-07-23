@@ -21,13 +21,16 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
@@ -127,6 +130,33 @@ class PloggingControllerTest {
                 org.mockito.ArgumentMatchers.eq(1L),
                 org.mockito.ArgumentMatchers.any(PloggingDto.CompleteRequest.class)
         );
+    }
+
+    @DisplayName("개인 플로깅 상세 조회 응답의 기록 시각은 UTC 오프셋을 포함한다")
+    @Test
+    void get_session_returns_record_times_with_utc_offset() throws Exception {
+        // given
+        PloggingDto.SessionDetailResponse response = new PloggingDto.SessionDetailResponse(
+                10L,
+                PloggingMode.FREE,
+                Instant.parse("2026-07-24T15:00:00Z"),
+                Instant.parse("2026-07-24T15:00:30Z"),
+                "공원",
+                100,
+                30,
+                10,
+                30,
+                0,
+                null,
+                List.of()
+        );
+        given(ploggingService.findSession(1L, 10L)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(get("/api/plogging-sessions/{ploggingSessionId}", 10L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.startedAt").value("2026-07-24T15:00:00Z"))
+                .andExpect(jsonPath("$.finishedAt").value("2026-07-24T15:00:30Z"));
     }
 
     private PloggingDto.CompleteRequest request(Long crewSessionId) {
