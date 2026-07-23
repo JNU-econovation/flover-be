@@ -5,6 +5,7 @@ import com.plover.plover_be.crew.domain.CrewPloggingStatus;
 import com.plover.plover_be.plogging.domain.PloggingMode;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -13,9 +14,9 @@ public class CrewPloggingDto {
     public record SessionResponse(
             @Schema(description = "같이 플로깅 세션 ID", example = "100") Long crewPloggingSessionId,
             @Schema(description = "세션 상태", example = "RECRUITING") CrewPloggingStatus status,
-            @Schema(description = "서버 기준 공통 시작 시각", nullable = true) LocalDateTime startedAt,
-            @Schema(description = "서버 기준 공통 종료 시각", nullable = true) LocalDateTime endedAt,
-            @Schema(description = "미제출 참가자의 제출 마감 시각", nullable = true) LocalDateTime submissionDeadlineAt,
+            @Schema(description = "UTC 기준 공통 시작 시각", nullable = true) Instant startedAt,
+            @Schema(description = "UTC 기준 공통 종료 시각", nullable = true) Instant endedAt,
+            @Schema(description = "UTC 기준 미제출 참가자의 제출 마감 시각", nullable = true) Instant submissionDeadlineAt,
             @Schema(description = "로그인 사용자의 세션 참가 이력 여부", example = "true") boolean joinedByMe,
             @Schema(description = "로그인 사용자의 참가 상태", example = "JOINED", nullable = true) CrewPloggingParticipantStatus participantStatus,
             @Schema(description = "로그인 사용자의 개인 기록 제출 여부", example = "false") boolean recordSubmittedByMe,

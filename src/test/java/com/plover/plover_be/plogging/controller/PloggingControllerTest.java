@@ -1,15 +1,25 @@
 package com.plover.plover_be.plogging.controller;
 
 import com.plover.plover_be.crew.service.CrewPloggingCompletionService;
+import com.plover.plover_be.global.auth.LoginUserId;
 import com.plover.plover_be.plogging.domain.PloggingMode;
 import com.plover.plover_be.plogging.dto.PloggingDto;
 import com.plover.plover_be.plogging.service.PloggingService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.MethodParameter;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.support.WebDataBinderFactory;
+import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.method.support.ModelAndViewContainer;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,6 +27,8 @@ import java.util.List;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
 class PloggingControllerTest {
@@ -24,6 +36,31 @@ class PloggingControllerTest {
     @Mock private PloggingService ploggingService;
     @Mock private CrewPloggingCompletionService crewPloggingCompletionService;
     @InjectMocks private PloggingController ploggingController;
+
+    private MockMvc mockMvc;
+
+    @BeforeEach
+    void setUp() {
+        HandlerMethodArgumentResolver loginUserIdResolver = new HandlerMethodArgumentResolver() {
+            @Override
+            public boolean supportsParameter(MethodParameter parameter) {
+                return parameter.hasParameterAnnotation(LoginUserId.class);
+            }
+
+            @Override
+            public Object resolveArgument(
+                    MethodParameter parameter,
+                    ModelAndViewContainer mavContainer,
+                    NativeWebRequest webRequest,
+                    WebDataBinderFactory binderFactory
+            ) {
+                return 1L;
+            }
+        };
+        mockMvc = MockMvcBuilders.standaloneSetup(ploggingController)
+                .setCustomArgumentResolvers(loginUserIdResolver)
+                .build();
+    }
 
     @DisplayName("크루 세션 ID가 null이면 기존 개인 완료 서비스를 그대로 호출한다")
     @Test
@@ -53,6 +90,43 @@ class PloggingControllerTest {
         // then
         verify(crewPloggingCompletionService).complete(1L, request);
         verify(ploggingService, never()).complete(1L, request);
+    }
+
+    @DisplayName("UTC 오프셋이 포함된 같이 플로깅 완료 요청을 수신한다")
+    @Test
+    void complete_accepts_utc_offset_timestamps() throws Exception {
+        // given
+        String requestBody = """
+                {
+                  "mode": "FREE",
+                  "startedAt": "2026-07-23T14:30:00.000Z",
+                  "finishedAt": "2026-07-23T14:30:30.000Z",
+                  "distanceMeters": 100,
+                  "stepCount": 30,
+                  "caloriesBurned": 10,
+                  "ploggingSeconds": 30,
+                  "restSeconds": 0,
+                  "placeName": "",
+                  "startLatitude": 37.5,
+                  "startLongitude": 127.0,
+                  "endLatitude": 37.5,
+                  "endLongitude": 127.0,
+                  "routePoints": [],
+                  "mapImageUrl": null,
+                  "photoUrls": [],
+                  "crewPloggingSessionId": 10
+                }
+                """;
+
+        // when & then
+        mockMvc.perform(post("/api/plogging-sessions/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk());
+        verify(crewPloggingCompletionService).complete(
+                org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.any(PloggingDto.CompleteRequest.class)
+        );
     }
 
     private PloggingDto.CompleteRequest request(Long crewSessionId) {
