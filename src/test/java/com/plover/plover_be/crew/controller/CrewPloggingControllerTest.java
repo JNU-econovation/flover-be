@@ -22,6 +22,7 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,6 +31,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
@@ -82,6 +85,27 @@ class CrewPloggingControllerTest {
         // then
         assertThat(body).isEqualTo(response);
         verify(crewPloggingService).cancelSession(1L, 10L);
+    }
+
+    @DisplayName("같이 플로깅 종료 응답의 서버 시각은 UTC 오프셋을 포함한다")
+    @Test
+    void end_session_returns_server_times_with_utc_offset() throws Exception {
+        // given
+        Instant startedAt = Instant.parse("2026-07-23T14:30:00Z");
+        Instant endedAt = Instant.parse("2026-07-23T14:30:30Z");
+        Instant submissionDeadlineAt = Instant.parse("2026-07-24T14:30:30Z");
+        CrewPloggingDto.SessionResponse response = new CrewPloggingDto.SessionResponse(
+                10L, CrewPloggingStatus.COMPLETING, startedAt, endedAt, submissionDeadlineAt,
+                true, null, false, 1, false
+        );
+        given(crewPloggingService.endSession(1L, 10L)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(post("/api/crew-plogging-sessions/{sessionId}/end", 10L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.startedAt").value("2026-07-23T14:30:00Z"))
+                .andExpect(jsonPath("$.endedAt").value("2026-07-23T14:30:30Z"))
+                .andExpect(jsonPath("$.submissionDeadlineAt").value("2026-07-24T14:30:30Z"));
     }
 
     @DisplayName("크루 기록 목록은 page, size, sort 쿼리 파라미터를 Pageable로 바인딩한다")

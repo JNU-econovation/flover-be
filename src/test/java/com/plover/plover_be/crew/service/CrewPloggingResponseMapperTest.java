@@ -21,7 +21,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,13 +41,17 @@ class CrewPloggingResponseMapperTest {
     @Test
     void polling_response_marks_early_submitter_as_submitted() {
         // given
+        LocalDateTime startedAt = LocalDateTime.of(2026, 7, 23, 14, 30);
+        LocalDateTime endedAt = startedAt.plusSeconds(30);
+        LocalDateTime submissionDeadlineAt = endedAt.plusHours(24);
         User user = User.create(OAuthProvider.KAKAO, "user", "user@test.com", "참가자", null);
         Crew crew = Crew.create("크루", "A1B2C3D4", user);
         CrewPloggingSession crewSession = CrewPloggingSession.create(crew);
-        crewSession.start(LocalDateTime.now());
+        crewSession.start(startedAt);
         CrewPloggingParticipant participant = CrewPloggingParticipant.create(crewSession, user, true);
         participant.start();
         participant.submit(personalRecord(user), LocalDateTime.now());
+        crewSession.end(endedAt, submissionDeadlineAt);
         given(participantRepository.findByCrewPloggingSessionIdAndUserId(crewSession.getId(), 1L))
                 .willReturn(Optional.of(participant));
         given(participantRepository.countByCrewPloggingSessionIdAndStatusNot(
@@ -59,6 +65,9 @@ class CrewPloggingResponseMapperTest {
         assertThat(response.participantStatus()).isEqualTo(CrewPloggingParticipantStatus.SUBMITTED);
         assertThat(response.recordSubmittedByMe()).isTrue();
         assertThat(response.status()).isEqualTo(crewSession.getStatus());
+        assertThat(response.startedAt()).isEqualTo(Instant.parse("2026-07-23T14:30:00Z"));
+        assertThat(response.endedAt()).isEqualTo(endedAt.toInstant(ZoneOffset.UTC));
+        assertThat(response.submissionDeadlineAt()).isEqualTo(submissionDeadlineAt.toInstant(ZoneOffset.UTC));
     }
 
     @DisplayName("기록 요약은 벌크 조회된 사진 값으로 기존 응답 필드를 그대로 매핑한다")

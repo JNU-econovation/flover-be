@@ -12,6 +12,9 @@ import com.plover.plover_be.plogging.repository.PloggingPhotoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Component
@@ -31,9 +34,9 @@ public class CrewPloggingResponseMapper {
         return new CrewPloggingDto.SessionResponse(
                 session.getId(),
                 session.getStatus(),
-                session.getStartedAt(),
-                session.getEndedAt(),
-                session.getSubmissionDeadlineAt(),
+                toUtcInstant(session.getStartedAt()),
+                toUtcInstant(session.getEndedAt()),
+                toUtcInstant(session.getSubmissionDeadlineAt()),
                 participant != null && participant.getStatus() != CrewPloggingParticipantStatus.CANCELED,
                 participant == null ? null : participant.getStatus(),
                 participant != null && participant.getStatus() == CrewPloggingParticipantStatus.SUBMITTED,
@@ -117,5 +120,9 @@ public class CrewPloggingResponseMapper {
                 participants,
                 photos
         );
+    }
+
+    private Instant toUtcInstant(LocalDateTime value) {
+        return value == null ? null : value.toInstant(ZoneOffset.UTC);
     }
 }
